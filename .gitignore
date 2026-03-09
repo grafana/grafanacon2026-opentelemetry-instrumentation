@@ -1,0 +1,33 @@
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Go
+backend/bin/
+*.exe
+*.test
+*.out
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker
+docker-compose.override.yml
+
+# Logs
+*.log
+logs/

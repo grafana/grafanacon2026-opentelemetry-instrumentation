@@ -1,0 +1,63 @@
+<div class="container">
+  <div class="page-header flex-between">
+    <div>
+      <h1>Manage Restaurants</h1>
+      <p>Admin panel</p>
+    </div>
+    <a href="/admin/restaurants/new" class="btn btn-primary">+ Add Restaurant</a>
+  </div>
+
+  <% if (message) { %>
+    <div class="alert alert-success"><%= message %></div>
+  <% } %>
+
+  <% if (restaurants.length === 0) { %>
+    <div class="empty-state">
+      <p>No restaurants yet.</p>
+      <p><a href="/admin/restaurants/new">Add the first one.</a></p>
+    </div>
+  <% } else { %>
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Neighbourhood</th>
+          <th>Rating</th>
+          <th>Options</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% for (const r of restaurants) { %>
+          <tr>
+            <td><a href="/restaurants/<%= r.slug %>"><%= r.name %></a></td>
+            <td><%= r.neighborhood %></td>
+            <td>
+              <% if (r.avg_rating > 0) { %>
+                <span style="color:var(--gold);font-weight:600">★ <%= Number(r.avg_rating).toFixed(1) %></span>
+              <% } else { %>
+                <span style="color:var(--muted)">—</span>
+              <% } %>
+            </td>
+            <td>
+              <div class="tags">
+                <% for (const opt of (r.options || [])) { %>
+                  <span class="tag tag-<%= opt %>"><%= opt %></span>
+                <% } %>
+              </div>
+            </td>
+            <td>
+              <div class="admin-actions">
+                <a href="/admin/restaurants/<%= r.slug %>/edit" class="btn btn-sm btn-secondary">Edit</a>
+                <form method="post" action="/admin/restaurants/<%= r.slug %>/delete" style="display:inline"
+                      onsubmit="return confirm('Delete <%= r.name %>?')">
+                  <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        <% } %>
+      </tbody>
+    </table>
+  <% } %>
+</div>

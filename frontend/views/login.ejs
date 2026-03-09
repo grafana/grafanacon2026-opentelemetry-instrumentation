@@ -1,0 +1,26 @@
+<div class="login-page">
+  <div class="login-card">
+    <span class="login-icon">🥘</span>
+    <h1>Barcelona Tapas Finder</h1>
+    <p class="subtitle">Sign in to continue</p>
+
+    <% if (error) { %>
+      <div class="alert alert-error"><%= error %></div>
+    <% } %>
+
+    <form method="post" action="/login">
+      <div class="form-group" style="text-align:left">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" required autocomplete="username" placeholder="your-username" />
+      </div>
+      <div class="form-group" style="text-align:left">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" autocomplete="current-password" placeholder="••••••••" />
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center">Sign in →</button>
+    </form>
+    <p style="margin-top:1rem;text-align:center;font-size:0.9rem">
+      No account? <a href="/signup">Sign up</a>
+    </p>
+  </div>
+</div>

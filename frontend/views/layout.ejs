@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title || 'Barcelona Tapas Finder' %></title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<nav>
+  <a class="brand" href="/">🥘 Barcelona Tapas Finder</a>
+  <div class="nav-links">
+    <a href="/">Home</a>
+    <a href="/search">Search</a>
+    <% if (currentUser) { %>
+      <a href="/favorites">My Favourites</a>
+      <% if (currentUser.is_admin) { %>
+        <a href="/admin">Admin</a>
+      <% } %>
+      <span class="user-badge"><%= currentUser.username %></span>
+      <a href="/login">Switch</a>
+    <% } else { %>
+      <a href="/login">Login</a>
+    <% } %>
+  </div>
+</nav>
+
+<%- body %>
+
+<script>
+  window.CURRENT_USER = <%- JSON.stringify(currentUser) %>;
+</script>
+<script src="/app.js"></script>
+</body>
+</html>

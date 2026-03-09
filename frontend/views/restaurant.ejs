@@ -1,0 +1,129 @@
+<%# Hero area with photos %>
+<% if (restaurant.photo_ids && restaurant.photo_ids.length > 0) { %>
+  <div class="detail-hero">
+    <div class="detail-hero-photos">
+      <% for (const pid of restaurant.photo_ids) { %>
+        <img src="/api/restaurants/<%= restaurant.slug %>/photos/<%= pid %>" alt="<%= restaurant.name %>">
+      <% } %>
+    </div>
+    <div class="detail-hero-overlay"></div>
+    <div class="detail-hero-text">
+      <div class="neighborhood-label"><%= restaurant.neighborhood %></div>
+      <h1><%= restaurant.name %></h1>
+      <div class="address-line">📍 <%= restaurant.address %></div>
+    </div>
+  </div>
+<% } else { %>
+  <div class="detail-hero detail-hero-placeholder">
+    <div class="detail-hero-text">
+      <div class="neighborhood-label"><%= restaurant.neighborhood %></div>
+      <h1><%= restaurant.name %></h1>
+      <div class="address-line">📍 <%= restaurant.address %></div>
+    </div>
+  </div>
+<% } %>
+
+<div class="detail-body">
+  <%# Main column %>
+  <div class="detail-main">
+
+    <%# Description + meta %>
+    <div class="section">
+      <h2>About</h2>
+      <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:center;margin-bottom:0.25rem">
+        <div class="rating-display">
+          ★ <%= restaurant.avg_rating > 0 ? Number(restaurant.avg_rating).toFixed(1) : '–' %>
+          <span class="count">(<%= restaurant.rating_count %> rating<%= restaurant.rating_count !== 1 ? 's' : '' %>)</span>
+        </div>
+        <div class="tags">
+          <% for (const opt of (restaurant.options || [])) { %>
+            <span class="tag tag-<%= opt %>"><%= opt %></span>
+          <% } %>
+        </div>
+      </div>
+      <p style="color:var(--text);line-height:1.7"><%= restaurant.description %></p>
+    </div>
+
+    <%# Tapas menu %>
+    <div class="section">
+      <h2>Tapas Menu</h2>
+      <% if (restaurant.tapas_menu && restaurant.tapas_menu.length > 0) { %>
+        <ul class="tapas-list">
+          <% for (const item of restaurant.tapas_menu) { %>
+            <li class="tapas-item">
+              <span class="tapas-item-name">
+                <%= item.name %>
+                <% for (const opt of (item.options || [])) { %>
+                  <span class="tag tag-<%= opt %>"><%= opt %></span>
+                <% } %>
+              </span>
+              <span class="tapas-price">€<%= Number(item.price).toFixed(2) %></span>
+            </li>
+          <% } %>
+        </ul>
+      <% } else { %>
+        <p style="color:var(--muted)">Menu not available.</p>
+      <% } %>
+    </div>
+
+    <%# Reviews %>
+    <% if (ratings.length > 0) { %>
+      <div class="section">
+        <h2>Reviews</h2>
+        <% for (const rt of ratings) { %>
+          <div class="review-item">
+            <span class="review-user"><%= rt.username %></span>
+            <span class="review-stars"><%= '★'.repeat(rt.rating) %><%= '☆'.repeat(5 - rt.rating) %></span>
+          </div>
+        <% } %>
+      </div>
+    <% } %>
+
+  </div>
+
+  <%# Sidebar %>
+  <div class="detail-sidebar">
+
+    <%# Hours %>
+    <div>
+      <h3>Opening Hours</h3>
+      <% if (restaurant.hours && restaurant.hours.length > 0) { %>
+        <table class="hours-table">
+          <% for (const h of restaurant.hours) { %>
+            <tr>
+              <td><%= h.day %></td>
+              <td><%= h.open %> – <%= h.close %></td>
+            </tr>
+          <% } %>
+        </table>
+      <% } else { %>
+        <p style="color:var(--muted);font-size:0.875rem">Hours not available.</p>
+      <% } %>
+    </div>
+
+    <%# Rate this place %>
+    <% if (currentUser && !currentUser.is_admin) { %>
+      <div>
+        <h3>Your Rating</h3>
+        <div class="star-rating" id="star-rating" data-restaurant-id="<%= restaurant.slug %>">
+          <% for (let s = 1; s <= 5; s++) { %>
+            <button class="star <%= (restaurant.my_rating && s <= restaurant.my_rating) ? 'lit' : '' %>" data-value="<%= s %>">★</button>
+          <% } %>
+        </div>
+        <div class="rating-msg" id="rating-msg">
+          <% if (restaurant.my_rating) { %>
+            You rated this <%= restaurant.my_rating %>★
+          <% } else { %>
+            Click to rate
+          <% } %>
+        </div>
+      </div>
+    <% } else if (!currentUser) { %>
+      <div>
+        <h3>Rate this place</h3>
+        <p style="font-size:0.875rem;color:var(--muted)"><a href="/login">Log in</a> to leave a rating.</p>
+      </div>
+    <% } %>
+
+  </div>
+</div>

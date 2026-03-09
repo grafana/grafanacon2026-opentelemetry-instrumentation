@@ -1,0 +1,26 @@
+<div class="hero">
+  <p class="hero-eyebrow">Workshop Venue · Barcelona</p>
+  <h1>Find the Best Tapas in Barcelona</h1>
+  <p>Discover hidden gems near the venue — rated by fellow attendees</p>
+  <form class="search-bar" action="/search" method="get">
+    <input type="text" name="q" placeholder="Search by name or description…" autofocus>
+    <button type="submit">Search</button>
+  </form>
+</div>
+
+<div class="container">
+  <div class="section-heading">
+    <h2>Top Rated Spots</h2>
+    <a href="/search">View all →</a>
+  </div>
+
+  <% if (restaurants.length === 0) { %>
+    <div class="empty-state"><p>No restaurants found.</p></div>
+  <% } else { %>
+    <div class="grid">
+      <% for (const r of restaurants) { %>
+        <%- include('partials/card', { r }) %>
+      <% } %>
+    </div>
+  <% } %>
+</div>

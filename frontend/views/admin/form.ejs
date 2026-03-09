@@ -1,0 +1,97 @@
+<div class="container">
+  <div class="page-header">
+    <h1><%= restaurant ? 'Edit Restaurant' : 'Add Restaurant' %></h1>
+    <p><a href="/admin">← Back to admin</a></p>
+  </div>
+
+  <% if (error) { %>
+    <div class="alert alert-error"><%= error %></div>
+  <% } %>
+
+  <form class="form-card" method="post"
+        action="<%= restaurant ? '/admin/restaurants/' + restaurant.slug + '/edit' : '/admin/restaurants/new' %>"
+        enctype="multipart/form-data">
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Name *</label>
+        <input type="text" name="name" value="<%= (restaurant && restaurant.name) || '' %>" required>
+      </div>
+      <div class="form-group">
+        <label>Neighbourhood</label>
+        <select name="neighborhood">
+          <option value="">— select —</option>
+          <% for (const nb of ['Gràcia','El Born','Barceloneta','Eixample','Poble Sec','Barri Gòtic']) { %>
+            <option value="<%= nb %>" <%= (restaurant && restaurant.neighborhood === nb) ? 'selected' : '' %>><%= nb %></option>
+          <% } %>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Address</label>
+      <input type="text" name="address" value="<%= (restaurant && restaurant.address) || '' %>">
+    </div>
+
+    <div class="form-group">
+      <label>Description</label>
+      <textarea name="description"><%= (restaurant && restaurant.description) || '' %></textarea>
+    </div>
+
+    <div class="form-group">
+      <label>Dietary Options</label>
+      <div class="checkbox-row">
+        <label class="checkbox-label">
+          <input type="checkbox" name="options" value="vegan"
+            <%= (restaurant && restaurant.options && restaurant.options.includes('vegan')) ? 'checked' : '' %>>
+          Vegan
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" name="options" value="vegetarian"
+            <%= (restaurant && restaurant.options && restaurant.options.includes('vegetarian')) ? 'checked' : '' %>>
+          Vegetarian
+        </label>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Opening Hours (JSON)</label>
+      <textarea name="hours" style="font-family:monospace;font-size:0.82rem"><%= (restaurant && JSON.stringify(restaurant.hours, null, 2)) || '[]' %></textarea>
+      <p class="form-hint">Format: <code>[{"day":"monday","open":"13:00","close":"23:00"}]</code></p>
+    </div>
+
+    <div class="form-group">
+      <label>Tapas Menu (JSON)</label>
+      <textarea name="tapas_menu" style="font-family:monospace;font-size:0.82rem"><%= (restaurant && JSON.stringify(restaurant.tapas_menu, null, 2)) || '[]' %></textarea>
+      <p class="form-hint">Format: <code>[{"name":"Patatas Bravas","price":6.50,"options":["vegan"]}]</code></p>
+    </div>
+
+    <% if (!restaurant || (restaurant.photo_ids && restaurant.photo_ids.length < 2)) { %>
+      <div class="form-group">
+        <label>Add Photo <span style="font-weight:400;text-transform:none">(max 2 total)</span></label>
+        <input type="file" name="photo" accept="image/*">
+      </div>
+    <% } %>
+
+    <% if (restaurant && restaurant.photo_ids && restaurant.photo_ids.length > 0) { %>
+      <div class="form-group">
+        <label>Current Photos</label>
+        <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:0.25rem">
+          <% for (const pid of restaurant.photo_ids) { %>
+            <div class="photo-thumb-wrap">
+              <img src="/api/restaurants/<%= restaurant.slug %>/photos/<%= pid %>" alt="Photo">
+              <form method="post" action="/admin/restaurants/<%= restaurant.slug %>/photos/<%= pid %>/delete" style="display:contents">
+                <button type="submit" class="photo-delete-btn" onclick="return confirm('Delete this photo?')">✕</button>
+              </form>
+            </div>
+          <% } %>
+        </div>
+      </div>
+    <% } %>
+
+    <div style="display:flex;gap:0.75rem;margin-top:1.5rem">
+      <button type="submit" class="btn btn-primary"><%= restaurant ? 'Save Changes' : 'Create Restaurant' %></button>
+      <a href="/admin" class="btn btn-secondary">Cancel</a>
+    </div>
+  </form>
+</div>

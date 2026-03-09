@@ -1,0 +1,60 @@
+<div class="container">
+  <div class="page-header">
+    <h1>Search Restaurants</h1>
+    <p>Filter by neighbourhood, dietary options, rating or opening time</p>
+  </div>
+
+  <div class="filter-bar">
+    <form method="get" action="/search">
+      <label>
+        Name / description
+        <input type="text" name="q" value="<%= filters.q || '' %>" placeholder="e.g. patatas bravas">
+      </label>
+      <label>
+        Neighbourhood
+        <select name="neighborhood">
+          <option value="">Any</option>
+          <% for (const nb of neighborhoods) { %>
+            <option value="<%= nb %>" <%= filters.neighborhood === nb ? 'selected' : '' %>><%= nb %></option>
+          <% } %>
+        </select>
+      </label>
+      <label>
+        Min rating
+        <input type="number" name="min_rating" value="<%= filters.min_rating || '' %>" min="1" max="5" step="0.5" style="width:90px">
+      </label>
+      <label>
+        Open at
+        <input type="time" name="open_at" value="<%= filters.open_at || '' %>" style="width:120px">
+      </label>
+      <label>
+        Dietary options
+        <select name="options">
+          <option value="">Any</option>
+          <option value="vegan"            <%= filters.options === 'vegan'            ? 'selected' : '' %>>Vegan</option>
+          <option value="vegetarian"       <%= filters.options === 'vegetarian'       ? 'selected' : '' %>>Vegetarian</option>
+          <option value="vegan,vegetarian" <%= filters.options === 'vegan,vegetarian' ? 'selected' : '' %>>Vegan & Vegetarian</option>
+        </select>
+      </label>
+      <button type="submit" class="btn btn-primary">Search</button>
+    </form>
+  </div>
+
+  <% if (error) { %>
+    <div class="alert alert-error"><%= error %></div>
+  <% } else if (restaurants.length === 0) { %>
+    <div class="empty-state">
+      <p>No restaurants matched your filters.</p>
+      <p>Try broadening your search.</p>
+    </div>
+  <% } else { %>
+    <p style="color:var(--muted);margin-bottom:1.25rem;font-size:0.875rem">
+      <%= restaurants.length %> result<%= restaurants.length !== 1 ? 's' : '' %>
+    </p>
+    <div class="grid">
+      <% for (const r of restaurants) { %>
+        <%- include('partials/card', { r }) %>
+      <% } %>
+    </div>
+  <% } %>
+</div>

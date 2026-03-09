@@ -1,0 +1,27 @@
+<a href="/restaurants/<%= r.slug %>" class="card">
+  <div class="card-img">
+    <% if (r.photo_ids && r.photo_ids.length > 0) { %>
+      <img src="/api/restaurants/<%= r.slug %>/photos/<%= r.photo_ids[0] %>" alt="<%= r.name %>" loading="lazy">
+    <% } else { %>
+      <span class="no-photo-icon">🍽️</span>
+    <% } %>
+    <% if (r.avg_rating > 0) { %>
+      <span class="card-rating-badge"><span class="star-icon">★</span> <%= Number(r.avg_rating).toFixed(1) %></span>
+    <% } %>
+  </div>
+  <div class="card-body">
+    <div class="card-neighborhood"><%= r.neighborhood %></div>
+    <div class="card-title"><%= r.name %></div>
+    <div class="card-description"><%= r.description %></div>
+  </div>
+  <div class="card-footer">
+    <div class="tags">
+      <% for (const opt of (r.options || [])) { %>
+        <span class="tag tag-<%= opt %>"><%= opt %></span>
+      <% } %>
+    </div>
+    <% if (!r.avg_rating || r.avg_rating === 0) { %>
+      <span style="font-size:0.78rem;color:var(--muted)">No ratings yet</span>
+    <% } %>
+  </div>
+</a>

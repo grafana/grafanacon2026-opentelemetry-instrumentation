@@ -1,0 +1,21 @@
+{
+  "name": "tapas-frontend",
+  "version": "1.0.0",
+  "description": "Barcelona Tapas Finder — Frontend",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "jest --testPathPattern=tests/frontend"
+  },
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "ejs": "^3.1.10",
+    "express": "^4.19.2",
+    "express-ejs-layouts": "^2.5.1",
+    "node-fetch": "^2.7.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^7.0.0"
+  }
+}

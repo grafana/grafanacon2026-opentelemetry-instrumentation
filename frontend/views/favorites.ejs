@@ -1,0 +1,21 @@
+<div class="container">
+  <div class="page-header">
+    <h1><%= currentUser.username %>'s Favourites</h1>
+    <p>Places you rated 4 stars or higher</p>
+  </div>
+
+  <% if (error) { %>
+    <div class="alert alert-error"><%= error %></div>
+  <% } else if (restaurants.length === 0) { %>
+    <div class="empty-state">
+      <p>No favourites yet.</p>
+      <p><a href="/search">Discover restaurants</a> and rate them 4★ or higher.</p>
+    </div>
+  <% } else { %>
+    <div class="grid">
+      <% for (const r of restaurants) { %>
+        <%- include('partials/card', { r }) %>
+      <% } %>
+    </div>
+  <% } %>
+</div>
