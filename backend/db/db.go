@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/workshop/tapas-backend/chaos"
 	_ "github.com/lib/pq"
 )
 
@@ -19,6 +20,11 @@ func Connect() (*sql.DB, error) {
 	}
 	if err := conn.Ping(); err != nil {
 		return nil, fmt.Errorf("ping db: %w", err)
+	}
+	// CHAOS: single connection forces all queries to serialize, amplifying the
+	// n+1 query pattern into visible connection-wait latency.
+	if chaos.Enabled() {
+		conn.SetMaxOpenConns(1)
 	}
 	return conn, nil
 }

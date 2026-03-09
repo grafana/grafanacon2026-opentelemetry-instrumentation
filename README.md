@@ -51,6 +51,10 @@ This starts the database in Docker, runs the Go backend tests against it, and ru
 
 Pass a `user-id` header with requests. Admin user IDs are defined in the database seed data.
 
+## Chaos Mode
+
+Set `CHAOS_MODE=true` in the `.env` file to enable intentional failures across both services: the backend will return a 500 on restaurant detail pages (bad SQL query) and fire N+1 photo queries on list pages through a single DB connection; the frontend will block the Node.js event loop on every search request, causing requests to queue up under concurrent load.
+
 ## Project Structure
 
 ```text

@@ -11,6 +11,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/lib/pq"
+	"github.com/workshop/tapas-backend/chaos"
 	dbpkg "github.com/workshop/tapas-backend/db"
 	"github.com/workshop/tapas-backend/middleware"
 )
@@ -23,6 +24,11 @@ const photoSubquery = `COALESCE(
 // listSelect is the column list for list queries (no tapas_menu).
 const listSelect = `r.id, r.slug, r.name, r.address, r.neighborhood, r.description,
 	r.hours, r.options, r.avg_rating, r.created_at, r.updated_at, ` + photoSubquery
+
+// listSelectChaos omits the photo subquery so photo IDs can be fetched in N
+// separate queries, demonstrating the N+1 pattern.
+const listSelectChaos = `r.id, r.slug, r.name, r.address, r.neighborhood, r.description,
+	r.hours, r.options, r.avg_rating, r.created_at, r.updated_at, '[]'::json AS photo_ids`
 
 // detailSelect includes tapas_menu.
 const detailSelect = `r.id, r.slug, r.name, r.address, r.neighborhood, r.description,
@@ -113,7 +119,13 @@ func ListRestaurants(db *sql.DB) http.HandlerFunc {
 			where = "WHERE " + strings.Join(conditions, " AND ")
 		}
 
-		query := fmt.Sprintf("SELECT %s FROM restaurants r %s ORDER BY r.avg_rating DESC", listSelect, where)
+		sel := listSelect
+		if chaos.Enabled() {
+			// CHAOS: drop the photo subquery from the main SELECT so each
+			// restaurant's photos are fetched in a dedicated query below.
+			sel = listSelectChaos
+		}
+		query := fmt.Sprintf("SELECT %s FROM restaurants r %s ORDER BY r.avg_rating DESC", sel, where)
 		rows, err := db.QueryContext(r.Context(), query, args...)
 		if err != nil {
 			Err(w, http.StatusInternalServerError, "database error")
@@ -134,6 +146,29 @@ func ListRestaurants(db *sql.DB) http.HandlerFunc {
 			restaurants = []*dbpkg.Restaurant{}
 		}
 
+		// CHAOS: n+1 — one extra query per restaurant to fetch photo IDs,
+		// replacing the efficient correlated subquery in listSelect.
+		if chaos.Enabled() {
+			for _, rest := range restaurants {
+				photoRows, err := db.QueryContext(r.Context(),
+					"SELECT id FROM photos WHERE restaurant_id = $1 ORDER BY created_at", rest.ID,
+				)
+				if err == nil {
+					var ids []string
+					for photoRows.Next() {
+						var id string
+						_ = photoRows.Scan(&id)
+						ids = append(ids, id)
+					}
+					photoRows.Close()
+					if ids == nil {
+						ids = []string{}
+					}
+					rest.PhotoIDs = ids
+				}
+			}
+		}
+
 		JSON(w, http.StatusOK, map[string]any{
 			"restaurants": restaurants,
 			"total":       len(restaurants),
@@ -144,6 +179,19 @@ func ListRestaurants(db *sql.DB) http.HandlerFunc {
 func GetRestaurant(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		slug := mux.Vars(r)["id"]
+
+		// CHAOS: execute a query referencing a non-existent column so the DB
+		// returns an error that propagates all the way back to the browser.
+		if chaos.Enabled() {
+			var x string
+			err := db.QueryRowContext(r.Context(),
+				"SELECT r.nonexistent_col FROM restaurants r WHERE r.slug = $1", slug,
+			).Scan(&x)
+			if err != nil {
+				Err(w, http.StatusInternalServerError, fmt.Sprintf("database error: %v", err))
+				return
+			}
+		}
 
 		row := db.QueryRowContext(r.Context(),
 			fmt.Sprintf("SELECT %s FROM restaurants r WHERE r.slug = $1", detailSelect), slug)

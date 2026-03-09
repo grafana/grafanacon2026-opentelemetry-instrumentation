@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 
@@ -14,6 +15,8 @@ import (
 )
 
 func main() {
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, nil)))
+
 	db, err := dbpkg.Connect()
 	if err != nil {
 		log.Fatalf("cannot connect to database: %v", err)
@@ -21,6 +24,7 @@ func main() {
 	defer db.Close()
 
 	r := mux.NewRouter()
+	r.Use(middleware.Logging)
 	r.Use(middleware.LoadUser(db))
 
 	api := r.PathPrefix("/api").Subrouter()
@@ -73,6 +77,6 @@ func main() {
 		port = "8080"
 	}
 	addr := fmt.Sprintf(":%s", port)
-	log.Printf("backend listening on %s", addr)
+	slog.Info("backend listening", "addr", addr)
 	log.Fatal(http.ListenAndServe(addr, handler))
 }

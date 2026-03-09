@@ -8,6 +8,7 @@
     "test": "jest --testPathPattern=tests/frontend"
   },
   "dependencies": {
+    "winston": "^3.17.0",
     "cookie-parser": "^1.4.7",
     "ejs": "^3.1.10",
     "express": "^4.19.2",

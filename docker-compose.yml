@@ -24,6 +24,7 @@ services:
     environment:
       DB_URL: postgres://postgres:postgres@db:5432/tapas?sslmode=disable
       PORT: "8080"
+      CHAOS_MODE: ${CHAOS_MODE:-}
     ports:
       - "8081:8080"
     depends_on:
@@ -37,6 +38,7 @@ services:
     environment:
       BACKEND_URL: http://backend:8080
       PORT: "8080"
+      CHAOS_MODE: ${CHAOS_MODE:-}
     ports:
       - "8080:8080"
     depends_on:

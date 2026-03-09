@@ -4,8 +4,27 @@ const express      = require('express');
 const path         = require('path');
 const cookieParser = require('cookie-parser');
 const ejsLayouts   = require('express-ejs-layouts');
+const crypto       = require('crypto');
 // Allow tests to inject a mock fetch via global.__TEST_FETCH__
 const fetch    = global.__TEST_FETCH__ || require('node-fetch');
+const winston  = require('winston');
+
+const logger = winston.createLogger({
+  level: process.env.LOG_LEVEL || 'info',
+  format: winston.format.json(),
+  defaultMeta: { service: 'tapas-frontend' },
+  transports: [new winston.transports.Console()],
+});
+
+// CHAOS: blocks the Node.js event loop for ~1-2s per request on the search
+// route. Because Node is single-threaded, every concurrent request stalls
+// until the sync work finishes — the more traffic, the worse it gets.
+function chaosSlowNode() {
+  const v = process.env.CHAOS_MODE;
+  if (v === 'true' || v === '1') {
+    crypto.pbkdf2Sync('chaos', 'salt', 2000000, 64, 'sha512');
+  }
+}
 
 const app = express();
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8080';
@@ -59,6 +78,14 @@ async function backendDelete(path, headers = {}) {
   return fetch(`${BACKEND_URL}${path}`, { method: 'DELETE', headers });
 }
 
+// Middleware: log incoming requests
+app.use((req, res, next) => {
+  res.on('finish', () => {
+    logger.info('request', { method: req.method, path: req.path, status: res.statusCode });
+  });
+  next();
+});
+
 // Middleware: attach currentUser to all requests
 app.use((req, res, next) => {
   try {
@@ -96,6 +123,7 @@ app.use('/api', async (req, res) => {
     const buf = await upstream.arrayBuffer();
     res.end(Buffer.from(buf));
   } catch (err) {
+    logger.error('backend proxy error', { url, error: err.message });
     res.status(502).json({ error: 'backend unavailable' });
   }
 });
@@ -116,6 +144,7 @@ app.get('/', async (req, res) => {
 
 // Search
 app.get('/search', async (req, res) => {
+  chaosSlowNode();
   const { q, neighborhood, min_rating, open_at, options } = req.query;
   const params = new URLSearchParams();
   if (q)            params.set('q', q);
@@ -156,6 +185,13 @@ app.get('/restaurants/:id', async (req, res) => {
 
     if (rRes.status === 404) {
       return renderPage(res.status(404), 'error', { status: 404, message: 'Restaurant not found.' });
+    }
+    if (!rRes.ok) {
+      const err = await rRes.json().catch(() => ({}));
+      return renderPage(res.status(rRes.status), 'error', {
+        status: rRes.status,
+        message: err.error || 'Could not load restaurant.',
+      });
     }
 
     const restaurant = await rRes.json();
@@ -346,7 +382,7 @@ app.use((req, res) => {
 const PORT = process.env.PORT || 3000;
 
 if (require.main === module) {
-  app.listen(PORT, () => console.log(`frontend listening on :${PORT}`));
+  app.listen(PORT, () => logger.info(`frontend listening on :${PORT}`));
 }
 
 module.exports = app;
