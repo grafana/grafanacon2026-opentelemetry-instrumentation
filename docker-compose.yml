@@ -47,5 +47,25 @@ services:
     depends_on:
       - backend
 
+  lgtm:
+    container_name: lgtm
+    image: grafana/otel-lgtm:0.20.0
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana/provisioning/dashboards/dashboards.yaml:/otel-lgtm/grafana/conf/provisioning/dashboards/hostmetrics.yaml:ro
+      - ./grafana/dashboards:/otel-lgtm/grafana/dashboards:ro
+
+  otel-collector:
+    container_name: otel-collector
+    image: otel/opentelemetry-collector-contrib:0.147.0
+    user: "0"
+    volumes:
+      - ./otel-collector/config.yaml:/etc/otelcol-contrib/config.yaml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /:/hostfs:ro
+    depends_on:
+      - lgtm
+
 volumes:
   db_data:

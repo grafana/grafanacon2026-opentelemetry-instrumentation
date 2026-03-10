@@ -4,9 +4,11 @@ A demo application for learning OpenTelemetry instrumentation. It helps users di
 
 ## Architecture
 
-- **Frontend**: Node.js/Express app with EJS templates (port 3000)
-- **Backend**: Go REST API with gorilla/mux (port 8080)
+- **Frontend**: Node.js/Express app with EJS templates (port 8080)
+- **Backend**: Go REST API with gorilla/mux (port 8081)
 - **Database**: PostgreSQL 16
+- **OTel Collector**: Collects and forwards telemetry to LGTM
+- **LGTM**: Grafana + Loki + Tempo + Mimir stack for observability (port 3000)
 
 ## Prerequisites
 
@@ -20,7 +22,7 @@ A demo application for learning OpenTelemetry instrumentation. It helps users di
 docker compose up --build
 ```
 
-Then open <http://localhost:3000> in your browser.
+Then open <http://localhost:8080> in your browser.
 
 ## Running Tests
 
@@ -54,6 +56,25 @@ Pass a `user-id` header with requests. Admin user IDs are defined in the databas
 ## Chaos Mode
 
 Set `CHAOS_MODE=true` in the `.env` file to enable intentional failures across both services: the backend will return a 500 on restaurant detail pages (bad SQL query) and fire N+1 photo queries on list pages through a single DB connection; the frontend will block the Node.js event loop on every search request, causing requests to queue up under concurrent load.
+
+## Observability
+
+The stack includes an OpenTelemetry Collector and a Grafana LGTM (Loki + Grafana + Tempo + Mimir) instance.
+
+### OTel Collector
+
+The collector ([otel-collector/config.yaml](otel-collector/config.yaml)) receives OTLP telemetry from the application and also scrapes infrastructure metrics:
+
+- **hostmetrics**: CPU, disk, filesystem, memory, network, paging, and processes — collected every 30s from the host
+- **docker_stats**: Per-container resource metrics collected every 10s via the Docker socket
+
+All telemetry is forwarded to LGTM via OTLP HTTP.
+
+### Grafana Dashboards
+
+Open Grafana at <http://localhost:3000> (no login required).
+
+- **Host Metrics dashboard**: <http://localhost:3000/d/hostmetrics-simple/host-metrics> — shows CPU, memory, disk, and network metrics for the host and CPU, memory metrics from containers
 
 ## Project Structure
 
