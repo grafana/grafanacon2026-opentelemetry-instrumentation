@@ -5,7 +5,7 @@ RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 go build -o tapas-backend .
 
-FROM alpine:3.20@sha256:a4f4213abb84c497377b8544c81b3564f313746700372ec4fe84653e4fb03805
+FROM alpine:3.23@sha256:25109184c71bdad752c8312a8623239686a9a2071e8825f20acb8f2198c3f659
 WORKDIR /app
 COPY --from=builder /app/tapas-backend .
 EXPOSE 8080
