@@ -83,6 +83,8 @@ Open Grafana at <http://localhost:3000> (no login required).
 ├── backend/          # Go REST API
 ├── db/               # Database init SQL
 ├── frontend/         # Node.js/Express frontend
+├── grafana/          # Grafana dashboard definitions and provisioning config
+├── otel-collector/   # OpenTelemetry Collector configuration
 ├── tests/            # Integration tests
 └── docker-compose.yml
 ```
