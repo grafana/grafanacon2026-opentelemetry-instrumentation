@@ -32,6 +32,14 @@ make test
 
 This starts the database in Docker, runs the Go backend tests against it, and runs the Node.js frontend tests (using a mock backend).
 
+## Load Generation
+
+```bash
+make load
+```
+
+Runs a [load script](load-test.js) that generates traffic against the running application.
+
 ## API Endpoints
 
 | Method | Path | Description |
@@ -51,7 +59,14 @@ This starts the database in Docker, runs the Go backend tests against it, and ru
 
 ## Auth
 
-Pass a `user-id` header with requests. Admin user IDs are defined in the database seed data.
+Log in via the UI with just a username — no password required. Pre-seeded accounts:
+
+| Username | Role  |
+|----------|-------|
+| `admin`  | admin |
+| `alice`  | user  |
+| `bob`    | user  |
+| `carla`  | user  |
 
 ## Chaos Mode
 
