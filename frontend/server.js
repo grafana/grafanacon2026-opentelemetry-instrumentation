@@ -24,6 +24,14 @@ function chaosSlowNode() {
   }
 }
 
+// CHAOS: adds a random async delay (0–3 s) to introduce latency variance.
+function chaosRandomDelay() {
+  const v = process.env.CHAOS_MODE;
+  if (v !== 'true' && v !== '1') return Promise.resolve();
+  const ms = Math.random() * 3000;
+  return new Promise(r => setTimeout(r, ms));
+}
+
 const app = express();
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8080';
 
@@ -143,6 +151,7 @@ app.get('/', async (req, res) => {
 // Search
 app.get('/search', async (req, res) => {
   chaosSlowNode();
+  await chaosRandomDelay();
   const { q, neighborhood, min_rating, open_at, options } = req.query;
   const params = new URLSearchParams();
   if (q)            params.set('q', q);
