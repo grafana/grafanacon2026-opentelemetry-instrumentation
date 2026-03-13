@@ -2,7 +2,6 @@
 
 /**
  * Frontend happy-path tests.
- * Injects a mock fetch via global.__TEST_FETCH__ so no real backend is needed.
  */
 
 const request = require('supertest');
@@ -58,12 +57,12 @@ function mockFetch(url) {
   return Promise.resolve(makeResp({ error: 'not found' }, 404));
 }
 
-// Inject mock fetch before loading server
-global.__TEST_FETCH__ = mockFetch;
+// Override built-in fetch before loading server
+global.fetch = mockFetch;
 
 const app = require('../../frontend/server');
 
-afterAll(done => { delete global.__TEST_FETCH__; done(); });
+afterAll(done => { delete global.fetch; done(); });
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 

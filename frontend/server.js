@@ -5,8 +5,6 @@ const path         = require('path');
 const cookieParser = require('cookie-parser');
 const ejsLayouts   = require('express-ejs-layouts');
 const crypto       = require('crypto');
-// Allow tests to inject a mock fetch via global.__TEST_FETCH__
-const fetch    = global.__TEST_FETCH__ || require('node-fetch');
 const winston  = require('winston');
 
 const logger = winston.createLogger({
