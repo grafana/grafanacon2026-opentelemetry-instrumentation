@@ -1,0 +1,99 @@
+# Exercise 02 — Setup OBI (OTel eBPF Instrumentation)
+
+In this exercise you add [OBI](https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation) — the OpenTelemetry eBPF Instrument — to the stack. OBI automatically captures HTTP and RPC metrics for any process on the host using Linux eBPF, with no code changes or language agents required.
+
+## What you will change
+
+| File | What changes |
+|------|-------------|
+| [docker-compose.yml](../docker-compose.yml) | Add the `obi` service; expose port 4318 on the collector |
+| [obi/obi-config.yml](../obi/obi-config.yml) | New OBI config — targets the app containers and exports metrics to the collector |
+| [grafana/dashboards/red-metrics.json](../grafana/dashboards/red-metrics.json) | New RED metrics dashboard — request rate, error rate, and latency per service |
+
+---
+
+## Step 1 — Add the OBI service to docker-compose
+
+OBI needs to run as a privileged container with `pid: host` so it can observe all processes on the host. It also needs access to the Docker socket to attach container metadata to metrics.
+
+```diff
++  obi:
++    container_name: obi
++    image: otel/ebpf-instrument:main
++    # we can narrow the permissions with Linux capabilities
++    # giving full privileges for the sake of simplicity
++    privileged: true
++    # important so OBI can inspect other processes in the host
++    pid: host
++    volumes:
++      # required if you want extra container metadata attributes
++      - /var/run/docker.sock:/var/run/docker.sock:ro
++      - ./obi/obi-config.yml:/etc/obi/config.yml:ro
++    environment:
++      OTEL_EBPF_CONFIG_PATH: /etc/obi/config.yml
++    depends_on:
++      - otel-collector
+```
+
+Also expose port 4318 on the `otel-collector` service so OBI can reach it:
+
+```diff
+   otel-collector:
+     ...
++    ports:
++      - 4318
+```
+
+---
+
+## Step 2 — Create the OBI config
+
+Create [obi/obi-config.yml](../obi/obi-config.yml). The `discovery.instrument` list scopes OBI to only the app containers — without it OBI would instrument every process on the host, including the collector itself.
+
+```yaml
+otel_metrics_export:
+  protocol: http/protobuf
+  endpoint: http://otel-collector:4318
+  interval: 5s
+discovery:
+  instrument:
+    - container_name: db
+    - container_name: backend
+    - container_name: frontend
+```
+
+---
+
+## Step 3 — Add the Grafana dashboard
+
+A pre-built RED metrics dashboard lives in [grafana/dashboards/red-metrics.json](../grafana/dashboards/red-metrics.json). It is automatically provisioned on startup.
+
+```bash
+git checkout 02-setup-obi -- grafana/dashboards/red-metrics.json
+```
+
+---
+
+## Verify
+
+```bash
+docker compose up --build
+```
+
+Generate some traffic:
+
+```bash
+make load
+```
+
+Open <http://localhost:3000/d/e0701985-a623-4e62-9fae-f5094244d065/red-metrics>. You should see request rate, error rate, and P95 latency panels for the `backend` and `frontend` services.
+
+---
+
+## Catch up
+
+To skip ahead to the completed state of this exercise, check out the solution branch:
+
+```bash
+git checkout 02-setup-obi
+```

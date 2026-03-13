@@ -31,15 +31,9 @@ The workshop is divided into sections, each building on the previous one. Every 
 
 | Exercise | Branch |
 | --- | --- |
-| 01 — Setup infrastructure metrics in OpenTelemetry Collector | `01-setup-infra-metrics` |
-| 02 — Setup eBPF instrumentation | `02-setup-obi` |
-| 03 — Instrumenting applications | `03-instrumenting-applications` |
-
-To catch up to any exercise, check out its branch:
-
-```bash
-git checkout 01-setup-infra-metrics
-```
+| [01 — Setup infrastructure metrics in OpenTelemetry Collector](exercises/01-setup-infra-metrics.md) | `01-setup-infra-metrics` |
+| [02 — Setup eBPF instrumentation](exercises/02-setup-obi.md) | `02-setup-obi` |
+| [03 — Instrumenting applications](exercises/03-instrumenting-applications.md) | `03-instrumenting-applications` |
 
 ## Running the Application
 
