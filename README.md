@@ -4,6 +4,7 @@ A demo application for learning OpenTelemetry instrumentation. It helps users di
 
 ## Prerequisites
 
+- Git
 - Docker and Docker Compose
 
 ## Getting Started

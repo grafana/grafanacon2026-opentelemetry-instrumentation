@@ -32,12 +32,12 @@ Add the following receivers to [otel-collector/config.yaml](../otel-collector/co
 
 ### [hostmetrics](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.147.0/receiver/hostmetricsreceiver)
 
-Scrapes CPU, disk, filesystem, memory, network, paging, and process metrics from the host every 30 s. `root_path` points to the bind-mounted host filesystem.
+Scrapes CPU, disk, filesystem, memory, network, paging, and process metrics from the host every 10 s. `root_path` points to the bind-mounted host filesystem.
 
 ```yaml
 hostmetrics:
   root_path: /hostfs
-  collection_interval: 30s
+  collection_interval: 10s
   scrapers:
     cpu:
       metrics:
