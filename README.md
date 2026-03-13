@@ -2,19 +2,44 @@
 
 A demo application for learning OpenTelemetry instrumentation. It helps users discover tapas restaurants in Barcelona.
 
-## Architecture
-
-- **Frontend**: Node.js/Express app with EJS templates (port 8080)
-- **Backend**: Go REST API with gorilla/mux (port 8081)
-- **Database**: PostgreSQL 16
-- **OTel Collector**: Collects and forwards telemetry to LGTM
-- **LGTM**: Grafana + Loki + Tempo + Mimir stack for observability (port 3000)
-
 ## Prerequisites
 
 - Docker and Docker Compose
-- Go (for backend tests)
-- Node.js (for frontend tests)
+
+## Getting Started
+
+Clone `grafana/grafanacon2026-opentelemetry-instrumentation`
+
+```bash
+git clone https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation
+cd grafanacon2026-opentelemetry-instrumentation
+```
+
+Start all services
+
+```bash
+docker compose up --build
+```
+
+Browse the app at `http://localhost:8080` — search restaurants, log in, submit ratings
+
+Open Grafana at `http://localhost:3000` — the observability stack is configured and ready; we'll add instrumentation to populate it during the workshop
+
+## Workshop Structure
+
+The workshop is divided into sections, each building on the previous one. Every section has a corresponding solution branch you can check out if you get stuck or want to catch up.
+
+| Exercise | Branch |
+| --- | --- |
+| 01 — Setup infrastructure metrics in OpenTelemetry Collector | `01-setup-infra-metrics` |
+| 02 — Setup eBPF instrumentation | `02-setup-obi` |
+| 03 — Instrumenting applications | `03-instrumenting-applications` |
+
+To catch up to any exercise, check out its branch:
+
+```bash
+git checkout 01-setup-infra-metrics
+```
 
 ## Running the Application
 
@@ -22,9 +47,44 @@ A demo application for learning OpenTelemetry instrumentation. It helps users di
 docker compose up --build
 ```
 
-Then open <http://localhost:8080> in your browser.
+Then open `http://localhost:8080` in your browser.
+
+## Observability
+
+The stack includes an OpenTelemetry Collector and a Grafana LGTM (Loki + Grafana + Tempo + Mimir) instance.
+
+### OTel Collector
+
+The collector ([otel-collector/config.yaml](otel-collector/config.yaml)) receives telemetry over OTLP
+and forwards it to LGTM via OTLP HTTP.
+
+Collector is configured and ready to receive telemetry.
+
+### Grafana Dashboards
+
+Open Grafana at `http://localhost:3000` (no login required).
+
+We'll add dashboards throughout the workshop.
+
+## Project Structure
+
+```text
+.
+├── backend/          # Go REST API
+├── db/               # Database init SQL
+├── frontend/         # Node.js/Express frontend
+├── grafana/          # Grafana dashboard definitions and provisioning config
+├── otel-collector/   # OpenTelemetry Collector config
+├── tests/            # Integration tests
+└── docker-compose.yml
+```
 
 ## Running Tests
+
+### Test prerequisites
+
+- Go
+- Node.js
 
 ```bash
 make test
@@ -71,35 +131,3 @@ Log in via the UI with just a username — no password required. Pre-seeded acco
 ## Chaos Mode
 
 Set `CHAOS_MODE=true` in the `.env` file to enable intentional failures across both services: the backend will return a 500 on restaurant detail pages (bad SQL query) and fire N+1 photo queries on list pages through a single DB connection; the frontend will block the Node.js event loop on every search request, causing requests to queue up under concurrent load.
-
-## Observability
-
-The stack includes an OpenTelemetry Collector and a Grafana LGTM (Loki + Grafana + Tempo + Mimir) instance.
-
-### OTel Collector
-
-The collector ([otel-collector/config.yaml](otel-collector/config.yaml)) receives OTLP telemetry from the application and also scrapes infrastructure metrics:
-
-- **hostmetrics**: CPU, disk, filesystem, memory, network, paging, and processes — collected every 30s from the host
-- **docker_stats**: Per-container resource metrics collected every 10s via the Docker socket
-
-All telemetry is forwarded to LGTM via OTLP HTTP.
-
-### Grafana Dashboards
-
-Open Grafana at <http://localhost:3000> (no login required).
-
-- **Host Metrics dashboard**: <http://localhost:3000/d/hostmetrics-simple/host-metrics> — shows CPU, memory, disk, and network metrics for the host and CPU, memory metrics from containers
-
-## Project Structure
-
-```text
-.
-├── backend/          # Go REST API
-├── db/               # Database init SQL
-├── frontend/         # Node.js/Express frontend
-├── grafana/          # Grafana dashboard definitions and provisioning config
-├── otel-collector/   # OpenTelemetry Collector config
-├── tests/            # Integration tests
-└── docker-compose.yml
-```
