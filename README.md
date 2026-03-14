@@ -1,7 +1,7 @@
 # Barcelona Tapas Finder — OpenTelemetry Workshop
 
 > [!IMPORTANT]
-> You are on **[Exercise 04 — Customizing instrumentations](exercises/04-customizing-instrumentations.md)**
+> You are on **[Exercise 05 — Processing telemetry](exercises/05-processing.md)**
 
 A demo application for learning OpenTelemetry instrumentation. It helps users discover tapas restaurants in Barcelona.
 
@@ -87,6 +87,12 @@ and forwards it to LGTM via OTLP HTTP and also scrapes infrastructure metrics:
 - **hostmetrics**: CPU, disk, filesystem, load, memory, network, paging, and processes — collected every 10s from the host
 - **docker_stats**: Per-container resource metrics collected every 10s via the Docker socket
 - **resourcedetection** processor enriches every signal with host and env resource attributes
+
+The trace pipeline also post-processes spans before export:
+
+- **filter/drop_frontend_noise** drops frontend `/health` and static-asset server spans so they never count against the trace budget
+- **tail_sampling** keeps only errors and traces slower than 1s (10s decision window)
+- **transform/anonymize_enduser** replaces `enduser.id` with an 8-char SHA-256 prefix on surviving spans
 
 ### OBI — OTel eBPF Instrument
 

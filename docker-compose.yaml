@@ -55,8 +55,6 @@ services:
       OTEL_METRIC_EXPORT_INTERVAL: "5000"
       OTEL_SEMCONV_STABILITY_OPT_IN: http      # opt in to stable HTTP semconv (http.request.method, etc.)
       OTEL_NODE_DISABLED_INSTRUMENTATIONS: net
-      OTEL_TRACES_SAMPLER: parentbased_traceidratio
-      OTEL_TRACES_SAMPLER_ARG: "0.5"
     ports:
       - "8080:8080"
     healthcheck:
