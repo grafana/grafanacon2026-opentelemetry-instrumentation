@@ -30,14 +30,14 @@ Open Grafana at `http://localhost:3000` — the observability stack is configure
 
 The workshop is divided into sections, each building on the previous one. Every section has a corresponding solution branch you can check out if you get stuck or want to catch up.
 
-| Exercise | Branch |
-| --- | --- |
-| [01 — Setup infrastructure metrics in OpenTelemetry Collector](exercises/01-setup-infra-metrics.md) | `01-setup-infra-metrics` |
-| [02 — Setup eBPF instrumentation](exercises/02-setup-obi.md) | `02-setup-obi` |
-| [03 — Instrumenting applications](exercises/03-instrumenting-applications.md) | `03-instrumenting-applications` |
-| [04 — Customizing instrumentations](exercises/04-customizing-instrumentations.md) | `04-customizing-instrumentations` |
-| [05 — Post-processing telemetry](exercises/05-post-processing.md) | `05-post-processing` |
-| [06 — Manual database instrumentation](exercises/06-manual-instrumentation.md) | `06-manual-instrumentation` |
+| Exercise                                                                                            | Branch                            |
+| --------------------------------------------------------------------------------------------------- | --------------------------------- |
+| [01 — Setup infrastructure metrics in OpenTelemetry Collector](exercises/01-setup-infra-metrics.md) | `01-setup-infra-metrics`          |
+| [02 — Setup eBPF instrumentation](exercises/02-setup-obi.md)                                        | `02-setup-obi`                    |
+| [03 — Instrumenting applications](exercises/03-instrumenting-applications.md)                       | `03-instrumenting-applications`   |
+| [04 — Customizing instrumentations](exercises/04-customizing-instrumentations.md)                   | `04-customizing-instrumentations` |
+| [05 — Post-processing telemetry](exercises/05-post-processing.md)                                   | `05-post-processing`              |
+| [06 — Manual database instrumentation](exercises/06-manual-instrumentation.md)                      | `06-manual-instrumentation`       |
 
 ## Running the Application
 
@@ -72,7 +72,6 @@ We'll add dashboards throughout the workshop.
 ├── db/               # Database init SQL
 ├── frontend/         # Node.js/Express frontend
 ├── grafana/          # Grafana dashboard definitions and provisioning config
-├── obi/              # OTel eBPF Instrument config
 ├── otel-collector/   # OpenTelemetry Collector config
 ├── tests/            # Integration tests
 └── docker-compose.yml
@@ -101,27 +100,27 @@ Runs a [load script](load-test.js) that generates traffic against the running ap
 
 ## API Endpoints
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/health` | Health check |
-| GET | `/api/restaurants` | List all restaurants |
-| GET | `/api/restaurants/:id` | Get restaurant details |
-| POST | `/api/restaurants` | Create restaurant (admin) |
-| PUT | `/api/restaurants/:id` | Update restaurant (admin) |
-| DELETE | `/api/restaurants/:id` | Delete restaurant (admin) |
-| POST | `/api/restaurants/:id/photos` | Upload photo (admin) |
-| GET | `/api/restaurants/:id/photos/:photo_id` | Get photo |
-| POST | `/api/restaurants/:id/ratings` | Submit rating (auth) |
-| GET | `/api/restaurants/:id/ratings` | List ratings |
-| GET | `/api/users` | List users (admin) |
-| GET | `/api/users/:id/favorites` | Get user favorites (auth) |
+| Method | Path                                    | Description               |
+| ------ | --------------------------------------- | ------------------------- |
+| GET    | `/api/health`                           | Health check              |
+| GET    | `/api/restaurants`                      | List all restaurants      |
+| GET    | `/api/restaurants/:id`                  | Get restaurant details    |
+| POST   | `/api/restaurants`                      | Create restaurant (admin) |
+| PUT    | `/api/restaurants/:id`                  | Update restaurant (admin) |
+| DELETE | `/api/restaurants/:id`                  | Delete restaurant (admin) |
+| POST   | `/api/restaurants/:id/photos`           | Upload photo (admin)      |
+| GET    | `/api/restaurants/:id/photos/:photo_id` | Get photo                 |
+| POST   | `/api/restaurants/:id/ratings`          | Submit rating (auth)      |
+| GET    | `/api/restaurants/:id/ratings`          | List ratings              |
+| GET    | `/api/users`                            | List users (admin)        |
+| GET    | `/api/users/:id/favorites`              | Get user favorites (auth) |
 
 ## Auth
 
 Log in via the UI with just a username — no password required. Pre-seeded accounts:
 
 | Username | Role  |
-|----------|-------|
+| -------- | ----- |
 | `admin`  | admin |
 | `alice`  | user  |
 | `bob`    | user  |

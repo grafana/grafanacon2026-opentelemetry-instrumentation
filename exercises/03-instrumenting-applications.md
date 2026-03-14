@@ -3,40 +3,41 @@
 In this exercise you add OpenTelemetry SDK instrumentation to both the Go backend and the Node.js frontend. Both services will emit traces, metrics, and logs via OTLP to the collector.
 
 - **Frontend (Node.js)** uses [zero-code auto-instrumentation](https://opentelemetry.io/docs/zero-code/js/) — no source changes are needed for traces and metrics. A single `--require` flag at startup loads the OTel SDK and automatically instruments HTTP, DNS, and other built-ins.
-- **Backend (Go)** uses manual SDK initialisation following the [Go instrumentation guide](https://opentelemetry.io/docs/languages/go/). The SDK must be explicitly wired up in code, but in return you get fine-grained control over providers, exporters, and sampling.
+- **Backend (Go)** uses manual SDK initialization following the [Go instrumentation guide](https://opentelemetry.io/docs/languages/go/). The SDK must be explicitly wired up in code, but in return you get fine-grained control over providers, exporters, and sampling.
 
 ## Contents
 
 - [What you will change](#what-you-will-change)
-- [Frontend (Node.js)](#frontend-nodejs)
+- [Part 1 — Frontend (Node.js)](#part-1--frontend-nodejs)
   - [Step 1 — Add dependencies](#step-1--add-dependencies-to-frontendpackagejson)
   - [Step 2 — Add the OTel log transport (optional)](#step-2--add-the-otel-log-transport-in-frontendserverjs-optional)
   - [Step 3 — Load auto-instrumentation](#step-3--load-auto-instrumentation-in-frontenddockerfile)
   - [Step 4 — Set env vars](#step-4--set-env-vars-in-docker-composeyml)
-- [Backend (Go)](#backend-go)
+- [Part 2 — Backend (Go)](#part-2--backend-go)
   - [Step 5 — Create telemetry.go](#step-5--create-backendtelemetrygo)
   - [Step 6 — Update main.go](#step-6--update-backendmaingo)
   - [Step 7 — Set env vars](#step-7--set-env-vars-in-docker-composeyml)
-- [Step 8 — Add the Grafana dashboard and alerts](#step-8--add-the-grafana-dashboard-and-alerts)
+- [Part 3 — Add the Grafana dashboard and alerts](#part-3--add-the-grafana-dashboard-and-alerts)
+  - [Step 8 — Add the Grafana dashboard and alerts](#step-8--add-the-grafana-dashboard-and-alerts)
 - [Verify](#verify)
 - [Catch up](#catch-up)
 
 ## What you will change
 
-| Service | File | What changes |
-|---------|------|-------------|
-| frontend | [frontend/package.json](../frontend/package.json) | Add OTel packages |
-| frontend | [frontend/server.js](../frontend/server.js) | Add OTel log transport to Winston *(optional)* |
-| frontend | [frontend/Dockerfile](../frontend/Dockerfile) | Load auto-instrumentation via `--require` |
-| backend | [backend/telemetry.go](../backend/telemetry.go) | New file — sets up OTel trace, metric, and log providers |
-| backend | [backend/main.go](../backend/main.go) | Call `setupTelemetry`; add HTTP middleware |
-| both | [docker-compose.yml](../docker-compose.yml) | Set `OTEL_*` env vars for both services; mount Grafana alerts |
-| — | [grafana/dashboards/apm-dashboard.json](../grafana/dashboards/apm-dashboard.json) | New APM dashboard — traces, metrics, and logs |
-| — | [grafana/provisioning/alerting/frontend-alerts.yml](../grafana/provisioning/alerting/frontend-alerts.yml) | New alert rules for frontend error rate and latency |
+| Service  | File                                                                                                      | What changes                                                  |
+| -------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| frontend | [frontend/package.json](../frontend/package.json)                                                         | Add OTel packages                                             |
+| frontend | [frontend/server.js](../frontend/server.js)                                                               | Add OTel log transport to Winston _(optional)_                |
+| frontend | [frontend/Dockerfile](../frontend/Dockerfile)                                                             | Load auto-instrumentation via `--require`                     |
+| backend  | [backend/telemetry.go](../backend/telemetry.go)                                                           | New file — sets up OTel trace, metric, and log providers      |
+| backend  | [backend/main.go](../backend/main.go)                                                                     | Call `setupTelemetry`; add HTTP middleware                    |
+| both     | [docker-compose.yml](../docker-compose.yml)                                                               | Set `OTEL_*` env vars for both services; mount Grafana alerts |
+| —        | [grafana/dashboards/apm-dashboard.json](../grafana/dashboards/apm-dashboard.json)                         | New APM dashboard — traces, metrics, and logs                 |
+| —        | [grafana/provisioning/alerting/frontend-alerts.yml](../grafana/provisioning/alerting/frontend-alerts.yml) | New alert rules for frontend error rate and latency           |
 
 ---
 
-## Frontend (Node.js)
+## Part 1 — Frontend (Node.js)
 
 ### Step 1 — Add dependencies to [frontend/package.json](../frontend/package.json)
 
@@ -49,7 +50,10 @@ In this exercise you add OpenTelemetry SDK instrumentation to both the Go backen
 - `auto-instrumentations-node` automatically instruments HTTP, DNS, and other Node.js built-ins.
 - `winston-transport` forwards Winston log records as OTel log records.
 
-### Step 2 — Add the OTel log transport in [frontend/server.js](../frontend/server.js) *(optional)*
+### Step 2 — Add the OTel log transport in [frontend/server.js](../frontend/server.js) _(optional)_
+
+> [!NOTE]
+> This step is optional. If you skip it, Winston logs will still appear in Loki as unstructured text, but they won't be correlated with traces via the OTel SDK.
 
 ```diff
 +const { OpenTelemetryTransportV3 } = require('@opentelemetry/winston-transport');
@@ -81,7 +85,7 @@ In this exercise you add OpenTelemetry SDK instrumentation to both the Go backen
 
 ---
 
-## Backend (Go)
+## Part 2 — Backend (Go)
 
 ### Step 5 — Create [backend/telemetry.go](../backend/telemetry.go)
 
@@ -125,7 +129,7 @@ Call `setupTelemetry` at startup and add the gorilla/mux HTTP middleware to crea
 
 ```diff
 +	ctx := context.Background()
-+   // initialise SDK providers
++   // initialize SDK providers
 +	shutdown, err := setupTelemetry(ctx)
 +	if err != nil {
 +		slog.Error("failed to setup telemetry", "error", err)
@@ -149,7 +153,9 @@ Call `setupTelemetry` at startup and add the gorilla/mux HTTP middleware to crea
 
 ---
 
-## Step 8 — Add the Grafana dashboard and alerts
+## Part 3 — Add the Grafana dashboard and alerts
+
+### Step 8 — Add the Grafana dashboard and alerts
 
 ```bash
 git checkout 03-instrumenting-applications -- grafana/dashboards/apm-dashboard.json

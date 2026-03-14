@@ -8,10 +8,10 @@ import (
 )
 
 type User struct {
-	ID          string    `json:"id"`
-	Username    string    `json:"username"`
-	IsAdmin     bool      `json:"is_admin"`
-	CreatedAt   time.Time `json:"created_at"`
+	ID        string    `json:"id"`
+	Username  string    `json:"username"`
+	IsAdmin   bool      `json:"is_admin"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type HourEntry struct {

@@ -1,16 +1,16 @@
-'use strict';
+"use strict";
 
-const express      = require('express');
-const path         = require('path');
-const cookieParser = require('cookie-parser');
-const ejsLayouts   = require('express-ejs-layouts');
-const crypto       = require('crypto');
-const winston  = require('winston');
+const express = require("express");
+const path = require("path");
+const cookieParser = require("cookie-parser");
+const ejsLayouts = require("express-ejs-layouts");
+const crypto = require("crypto");
+const winston = require("winston");
 
 const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || 'info',
+  level: process.env.LOG_LEVEL || "info",
   format: winston.format.json(),
-  defaultMeta: { service: 'tapas-frontend' },
+  defaultMeta: { service: "tapas-frontend" },
   transports: [new winston.transports.Console()],
 });
 
@@ -19,45 +19,56 @@ const logger = winston.createLogger({
 // until the sync work finishes — the more traffic, the worse it gets.
 function chaosSlowNode() {
   const v = process.env.CHAOS_MODE;
-  if (v === 'true' || v === '1') {
-    crypto.pbkdf2Sync('chaos', 'salt', 2000000, 64, 'sha512');
+  if (v === "true" || v === "1") {
+    crypto.pbkdf2Sync("chaos", "salt", 2000000, 64, "sha512");
   }
 }
 
 // CHAOS: adds a random async delay (0–3 s) to introduce latency variance.
 function chaosRandomDelay() {
   const v = process.env.CHAOS_MODE;
-  if (v !== 'true' && v !== '1') return Promise.resolve();
+  if (v !== "true" && v !== "1") return Promise.resolve();
   const ms = Math.random() * 3000;
-  return new Promise(r => setTimeout(r, ms));
+  return new Promise((r) => setTimeout(r, ms));
 }
 
 const app = express();
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8080';
+const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8080";
 
-app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
-app.set('layout', 'layout');
+app.set("view engine", "ejs");
+app.set("views", path.join(__dirname, "views"));
+app.set("layout", "layout");
 app.use(ejsLayouts);
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, "public")));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-const NEIGHBORHOODS = ['Gràcia', 'El Born', 'Barceloneta', 'Eixample', 'Poble Sec', 'Barri Gòtic'];
+const NEIGHBORHOODS = [
+  "Gràcia",
+  "El Born",
+  "Barceloneta",
+  "Eixample",
+  "Poble Sec",
+  "Barri Gòtic",
+];
 
 function safeParseArray(str) {
   if (!str) return [];
-  try { return JSON.parse(str); } catch { return []; }
+  try {
+    return JSON.parse(str);
+  } catch {
+    return [];
+  }
 }
 
 function toArray(v) {
-  return Array.isArray(v) ? v : (v ? [v] : []);
+  return Array.isArray(v) ? v : v ? [v] : [];
 }
 
 function renderPage(res, view, locals) {
-  res.render(view, { title: 'Barcelona Tapas Finder', ...locals });
+  res.render(view, { title: "Barcelona Tapas Finder", ...locals });
 }
 
 async function backendGet(path, headers = {}) {
@@ -66,28 +77,32 @@ async function backendGet(path, headers = {}) {
 
 async function backendPost(path, body, headers = {}) {
   return fetch(`${BACKEND_URL}${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...headers },
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...headers },
     body: JSON.stringify(body),
   });
 }
 
 async function backendPut(path, body, headers = {}) {
   return fetch(`${BACKEND_URL}${path}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...headers },
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...headers },
     body: JSON.stringify(body),
   });
 }
 
 async function backendDelete(path, headers = {}) {
-  return fetch(`${BACKEND_URL}${path}`, { method: 'DELETE', headers });
+  return fetch(`${BACKEND_URL}${path}`, { method: "DELETE", headers });
 }
 
 // Middleware: log incoming requests
 app.use((req, res, next) => {
-  res.on('finish', () => {
-    logger.info('request', { method: req.method, path: req.path, status: res.statusCode });
+  res.on("finish", () => {
+    logger.info("request", {
+      method: req.method,
+      path: req.path,
+      status: res.statusCode,
+    });
   });
   next();
 });
@@ -95,7 +110,9 @@ app.use((req, res, next) => {
 // Middleware: attach currentUser to all requests
 app.use((req, res, next) => {
   try {
-    req.currentUser = req.cookies.tapas_user ? JSON.parse(req.cookies.tapas_user) : null;
+    req.currentUser = req.cookies.tapas_user
+      ? JSON.parse(req.cookies.tapas_user)
+      : null;
   } catch {
     req.currentUser = null;
   }
@@ -104,97 +121,99 @@ app.use((req, res, next) => {
 });
 
 // Health check — confirms the frontend process is up and backend is reachable
-app.get('/health', async (_req, res) => {
+app.get("/health", async (_req, res) => {
   try {
     const r = await fetch(`${BACKEND_URL}/api/health`);
     const body = await r.json();
-    res.status(r.ok ? 200 : 502).json({ status: r.ok ? 'ok' : 'error', backend: body });
+    res
+      .status(r.ok ? 200 : 502)
+      .json({ status: r.ok ? "ok" : "error", backend: body });
   } catch (err) {
-    res.status(502).json({ status: 'error', backend: err.message });
+    res.status(502).json({ status: "error", backend: err.message });
   }
 });
 
 // Proxy /api/* to backend — lets browser fetch /api/... without CORS issues,
 // and also lets the photo <img> tag work via the same origin.
-app.use('/api', async (req, res) => {
+app.use("/api", async (req, res) => {
   const url = `${BACKEND_URL}/api${req.url}`;
   const headers = { ...req.headers };
-  delete headers['host'];
+  delete headers["host"];
   if (req.currentUser) {
-    headers['user-id'] = req.currentUser.id;
+    headers["user-id"] = req.currentUser.id;
   }
 
   try {
     const upstream = await fetch(url, {
       method: req.method,
       headers,
-      body: ['GET', 'HEAD'].includes(req.method) ? undefined : req,
-      duplex: 'half',
+      body: ["GET", "HEAD"].includes(req.method) ? undefined : req,
+      duplex: "half",
     });
     res.status(upstream.status);
     upstream.headers.forEach((v, k) => {
-      if (!['transfer-encoding', 'connection'].includes(k.toLowerCase())) {
+      if (!["transfer-encoding", "connection"].includes(k.toLowerCase())) {
         res.setHeader(k, v);
       }
     });
     const buf = await upstream.arrayBuffer();
     res.end(Buffer.from(buf));
   } catch (err) {
-    logger.error('backend proxy error', { url, error: err.message });
-    res.status(502).json({ error: 'backend unavailable' });
+    logger.error("backend proxy error", { url, error: err.message });
+    res.status(502).json({ error: "backend unavailable" });
   }
 });
 
 // ── Public routes ─────────────────────────────────────────────────────────────
 
 // Home — top-rated restaurants
-app.get('/', async (req, res) => {
+app.get("/", async (req, res) => {
   try {
-    const r = await backendGet('/api/restaurants?min_rating=0');
+    const r = await backendGet("/api/restaurants?min_rating=0");
     const data = await r.json();
     const restaurants = (data.restaurants || []).slice(0, 6);
-    renderPage(res, 'index', { restaurants });
+    renderPage(res, "index", { restaurants });
   } catch {
-    renderPage(res, 'index', { restaurants: [] });
+    renderPage(res, "index", { restaurants: [] });
   }
 });
 
 // Search
-app.get('/search', async (req, res) => {
+app.get("/search", async (req, res) => {
   chaosSlowNode();
   await chaosRandomDelay();
   const { q, neighborhood, min_rating, open_at, options } = req.query;
   const params = new URLSearchParams();
-  if (q)            params.set('q', q);
-  if (neighborhood) params.set('neighborhood', neighborhood);
-  if (min_rating)   params.set('min_rating', min_rating);
-  if (open_at)      params.set('open_at', open_at);
-  if (options)      params.set('options', options);
+  if (q) params.set("q", q);
+  if (neighborhood) params.set("neighborhood", neighborhood);
+  if (min_rating) params.set("min_rating", min_rating);
+  if (open_at) params.set("open_at", open_at);
+  if (options) params.set("options", options);
 
   try {
     const r = await backendGet(`/api/restaurants?${params}`);
     const data = await r.json();
-    renderPage(res, 'search', {
+    renderPage(res, "search", {
       restaurants: data.restaurants || [],
       filters: req.query,
       neighborhoods: NEIGHBORHOODS,
       error: null,
     });
   } catch {
-    renderPage(res, 'search', {
+    renderPage(res, "search", {
       restaurants: [],
       filters: req.query,
       neighborhoods: NEIGHBORHOODS,
-      error: 'Could not reach the backend.',
+      error: "Could not reach the backend.",
     });
   }
 });
 
 // Restaurant detail
-app.get('/restaurants/:id', async (req, res) => {
+app.get("/restaurants/:id", async (req, res) => {
   try {
     const headers = {};
-    if (req.currentUser) headers['user-id'] = req.currentUser.id;
+    if (req.currentUser) headers["user-id"] = req.currentUser.id;
 
     const [rRes, ratingsRes] = await Promise.all([
       backendGet(`/api/restaurants/${req.params.id}`, headers),
@@ -202,240 +221,321 @@ app.get('/restaurants/:id', async (req, res) => {
     ]);
 
     if (rRes.status === 404) {
-      return renderPage(res.status(404), 'error', { status: 404, message: 'Restaurant not found.' });
+      return renderPage(res.status(404), "error", {
+        status: 404,
+        message: "Restaurant not found.",
+      });
     }
     if (!rRes.ok) {
       const err = await rRes.json().catch(() => ({}));
-      return renderPage(res.status(rRes.status), 'error', {
+      return renderPage(res.status(rRes.status), "error", {
         status: rRes.status,
-        message: err.error || 'Could not load restaurant.',
+        message: err.error || "Could not load restaurant.",
       });
     }
 
     const restaurant = await rRes.json();
     const ratingsData = await ratingsRes.json();
 
-    renderPage(res, 'restaurant', {
+    renderPage(res, "restaurant", {
       restaurant,
       ratings: ratingsData.ratings || [],
     });
   } catch {
-    renderPage(res.status(502), 'error', { status: 502, message: 'Could not load restaurant.' });
+    renderPage(res.status(502), "error", {
+      status: 502,
+      message: "Could not load restaurant.",
+    });
   }
 });
 
-// Favourites — requires logged-in user
-app.get('/favorites', async (req, res) => {
+// Favorites — requires logged-in user
+app.get("/favorites", async (req, res) => {
   if (!req.currentUser) {
-    return res.redirect('/login');
+    return res.redirect("/login");
   }
   try {
-    const r = await backendGet(
-      `/api/users/me/favorites`,
-      { 'user-id': req.currentUser.id },
-    );
+    const r = await backendGet(`/api/users/me/favorites`, {
+      "user-id": req.currentUser.id,
+    });
     const data = await r.json();
-    renderPage(res, 'favorites', {
+    renderPage(res, "favorites", {
       restaurants: data.restaurants || [],
       error: null,
     });
   } catch {
-    renderPage(res, 'favorites', { restaurants: [], error: 'Could not load favourites.' });
+    renderPage(res, "favorites", {
+      restaurants: [],
+      error: "Could not load favorites.",
+    });
   }
 });
 
 // Login — GET
-app.get('/login', (req, res) => {
-  renderPage(res, 'login', { error: null });
+app.get("/login", (req, res) => {
+  renderPage(res, "login", { error: null });
 });
 
 // Login — POST (look up by username, set cookie)
-app.post('/login', async (req, res) => {
+app.post("/login", async (req, res) => {
   const { username } = req.body;
   if (!username) {
-    return renderPage(res, 'login', { error: 'Please enter your username.' });
+    return renderPage(res, "login", { error: "Please enter your username." });
   }
   try {
-    const r = await backendGet(`/api/users/by-username/${encodeURIComponent(username)}`);
+    const r = await backendGet(
+      `/api/users/by-username/${encodeURIComponent(username)}`,
+    );
     if (r.status === 404) {
-      return renderPage(res, 'login', { error: 'User not found.' });
+      return renderPage(res, "login", { error: "User not found." });
     }
     if (!r.ok) {
-      return renderPage(res, 'login', { error: 'Login failed. Please try again.' });
+      return renderPage(res, "login", {
+        error: "Login failed. Please try again.",
+      });
     }
     const user = await r.json();
     const encoded = encodeURIComponent(JSON.stringify(user));
-    res.setHeader('Set-Cookie', `tapas_user=${encoded}; Path=/; HttpOnly; SameSite=Lax`);
-    res.redirect('/');
+    res.setHeader(
+      "Set-Cookie",
+      `tapas_user=${encoded}; Path=/; HttpOnly; SameSite=Lax`,
+    );
+    res.redirect("/");
   } catch {
-    renderPage(res, 'login', { error: 'Could not reach the backend.' });
+    renderPage(res, "login", { error: "Could not reach the backend." });
   }
 });
 
 // OAuth — initiate: generate state nonce, redirect to fake consent page
-app.get('/auth/acme', (_req, res) => {
-  const state = crypto.randomBytes(16).toString('hex');
-  res.setHeader('Set-Cookie', `oauth_state=${state}; Path=/; HttpOnly; SameSite=Lax; Max-Age=300`);
+app.get("/auth/acme", (_req, res) => {
+  const state = crypto.randomBytes(16).toString("hex");
+  res.setHeader(
+    "Set-Cookie",
+    `oauth_state=${state}; Path=/; HttpOnly; SameSite=Lax; Max-Age=300`,
+  );
   res.redirect(`/auth/acme/consent?state=${state}`);
 });
 
 // OAuth — fake Acme SSO consent page
-app.get('/auth/acme/consent', (req, res) => {
-  res.render('oauth-consent', { layout: false, state: req.query.state || '' });
+app.get("/auth/acme/consent", (req, res) => {
+  res.render("oauth-consent", { layout: false, state: req.query.state || "" });
 });
 
 // OAuth — callback: validate state, fake token exchange, look up or create user
-app.post('/auth/acme/callback', async (req, res) => {
+app.post("/auth/acme/callback", async (req, res) => {
   const { username, state } = req.body;
   try {
     // Validate OAuth state to prevent CSRF
     if (!state || state !== req.cookies.oauth_state) {
-      return renderPage(res, 'login', { error: 'Login failed. Please try again.' });
+      return renderPage(res, "login", {
+        error: "Login failed. Please try again.",
+      });
     }
-    res.setHeader('Set-Cookie', 'oauth_state=; Path=/; Max-Age=0');
+    res.setHeader("Set-Cookie", "oauth_state=; Path=/; Max-Age=0");
 
     // Simulate token exchange round-trip to identity provider (80–200 ms)
-    await new Promise(r => setTimeout(r, 80 + Math.random() * 120));
+    await new Promise((r) => setTimeout(r, 80 + Math.random() * 120));
 
     // Look up existing user or create one on first OAuth sign-in
-    const r = await backendGet(`/api/users/by-username/${encodeURIComponent(username)}`);
+    const r = await backendGet(
+      `/api/users/by-username/${encodeURIComponent(username)}`,
+    );
     let user;
     if (r.status === 404) {
-      const created = await backendPost('/api/users', { username });
+      const created = await backendPost("/api/users", { username });
       user = await created.json();
     } else {
       user = await r.json();
     }
     const encoded = encodeURIComponent(JSON.stringify(user));
-    res.setHeader('Set-Cookie', `tapas_user=${encoded}; Path=/; HttpOnly; SameSite=Lax`);
-    res.redirect('/');
+    res.setHeader(
+      "Set-Cookie",
+      `tapas_user=${encoded}; Path=/; HttpOnly; SameSite=Lax`,
+    );
+    res.redirect("/");
   } catch {
-    renderPage(res, 'login', { error: 'Login failed. Please try again.' });
+    renderPage(res, "login", { error: "Login failed. Please try again." });
   }
 });
 
 // Signup — GET
-app.get('/signup', (_req, res) => {
-  renderPage(res, 'signup', { error: null });
+app.get("/signup", (_req, res) => {
+  renderPage(res, "signup", { error: null });
 });
 
 // Signup — POST (create user, then log in)
-app.post('/signup', async (req, res) => {
+app.post("/signup", async (req, res) => {
   const { username } = req.body;
   if (!username) {
-    return renderPage(res, 'signup', { error: 'Username is required.' });
+    return renderPage(res, "signup", { error: "Username is required." });
   }
   try {
-    const r = await backendPost('/api/users', { username });
+    const r = await backendPost("/api/users", { username });
     if (r.status === 409) {
-      return renderPage(res, 'signup', { error: 'Username already taken.' });
+      return renderPage(res, "signup", { error: "Username already taken." });
     }
     if (!r.ok) {
-      return renderPage(res, 'signup', { error: 'Could not create account. Please try again.' });
+      return renderPage(res, "signup", {
+        error: "Could not create account. Please try again.",
+      });
     }
     const user = await r.json();
     const encoded = encodeURIComponent(JSON.stringify(user));
-    res.setHeader('Set-Cookie', `tapas_user=${encoded}; Path=/; HttpOnly; SameSite=Lax`);
-    res.redirect('/');
+    res.setHeader(
+      "Set-Cookie",
+      `tapas_user=${encoded}; Path=/; HttpOnly; SameSite=Lax`,
+    );
+    res.redirect("/");
   } catch {
-    renderPage(res, 'signup', { error: 'Could not reach the backend.' });
+    renderPage(res, "signup", { error: "Could not reach the backend." });
   }
 });
 
 // Logout
-app.get('/logout', (req, res) => {
-  res.setHeader('Set-Cookie', 'tapas_user=; Path=/; Max-Age=0');
-  res.redirect('/login');
+app.get("/logout", (req, res) => {
+  res.setHeader("Set-Cookie", "tapas_user=; Path=/; Max-Age=0");
+  res.redirect("/login");
 });
 
 // ── Admin routes ──────────────────────────────────────────────────────────────
 
 function requireAdmin(req, res, next) {
   if (!req.currentUser || !req.currentUser.is_admin) {
-    return renderPage(res.status(403), 'error', {
+    return renderPage(res.status(403), "error", {
       status: 403,
-      message: 'Admin access required.',
+      message: "Admin access required.",
     });
   }
   next();
 }
 
-app.get('/admin', requireAdmin, async (req, res) => {
-  const r = await backendGet('/api/restaurants');
+app.get("/admin", requireAdmin, async (req, res) => {
+  const r = await backendGet("/api/restaurants");
   const data = await r.json();
-  renderPage(res, 'admin/index', {
+  renderPage(res, "admin/index", {
     restaurants: data.restaurants || [],
     message: req.query.message || null,
   });
 });
 
-app.get('/admin/restaurants/new', requireAdmin, (req, res) => {
-  renderPage(res, 'admin/form', { restaurant: null, error: null });
+app.get("/admin/restaurants/new", requireAdmin, (req, res) => {
+  renderPage(res, "admin/form", { restaurant: null, error: null });
 });
 
-app.post('/admin/restaurants/new', requireAdmin, async (req, res) => {
-  const { name, address, neighborhood, description, options, hours, tapas_menu } = req.body;
-  const body = { name, address, neighborhood, description, options: toArray(options), hours: safeParseArray(hours), tapas_menu: safeParseArray(tapas_menu) };
+app.post("/admin/restaurants/new", requireAdmin, async (req, res) => {
+  const {
+    name,
+    address,
+    neighborhood,
+    description,
+    options,
+    hours,
+    tapas_menu,
+  } = req.body;
+  const body = {
+    name,
+    address,
+    neighborhood,
+    description,
+    options: toArray(options),
+    hours: safeParseArray(hours),
+    tapas_menu: safeParseArray(tapas_menu),
+  };
 
-  const r = await backendPost('/api/restaurants', body, { 'user-id': req.currentUser.id });
+  const r = await backendPost("/api/restaurants", body, {
+    "user-id": req.currentUser.id,
+  });
 
   if (!r.ok) {
     const err = await r.json().catch(() => ({}));
-    return renderPage(res, 'admin/form', { restaurant: null, error: err.error || 'Could not create restaurant.' });
+    return renderPage(res, "admin/form", {
+      restaurant: null,
+      error: err.error || "Could not create restaurant.",
+    });
   }
 
   const created = await r.json();
   res.redirect(`/admin?message=Restaurant "${created.name}" created.`);
 });
 
-app.get('/admin/restaurants/:id/edit', requireAdmin, async (req, res) => {
-  const r = await backendGet(`/api/restaurants/${req.params.id}`, { 'user-id': req.currentUser.id });
-  if (r.status === 404) return renderPage(res.status(404), 'error', { status: 404, message: 'Not found.' });
+app.get("/admin/restaurants/:id/edit", requireAdmin, async (req, res) => {
+  const r = await backendGet(`/api/restaurants/${req.params.id}`, {
+    "user-id": req.currentUser.id,
+  });
+  if (r.status === 404)
+    return renderPage(res.status(404), "error", {
+      status: 404,
+      message: "Not found.",
+    });
   const restaurant = await r.json();
-  renderPage(res, 'admin/form', { restaurant, error: null });
+  renderPage(res, "admin/form", { restaurant, error: null });
 });
 
-app.post('/admin/restaurants/:id/edit', requireAdmin, async (req, res) => {
+app.post("/admin/restaurants/:id/edit", requireAdmin, async (req, res) => {
   const { id } = req.params;
-  const { name, address, neighborhood, description, options, hours, tapas_menu } = req.body;
+  const {
+    name,
+    address,
+    neighborhood,
+    description,
+    options,
+    hours,
+    tapas_menu,
+  } = req.body;
 
   const body = {};
-  if (name)         body.name = name;
-  if (address)      body.address = address;
+  if (name) body.name = name;
+  if (address) body.address = address;
   if (neighborhood) body.neighborhood = neighborhood;
-  if (description)  body.description = description;
-  if (options)      body.options = toArray(options);
-  if (hours)        body.hours = safeParseArray(hours);
-  if (tapas_menu)   body.tapas_menu = safeParseArray(tapas_menu);
+  if (description) body.description = description;
+  if (options) body.options = toArray(options);
+  if (hours) body.hours = safeParseArray(hours);
+  if (tapas_menu) body.tapas_menu = safeParseArray(tapas_menu);
 
-  const r = await backendPut(`/api/restaurants/${id}`, body, { 'user-id': req.currentUser.id });
+  const r = await backendPut(`/api/restaurants/${id}`, body, {
+    "user-id": req.currentUser.id,
+  });
 
   if (!r.ok) {
     const err = await r.json().catch(() => ({}));
-    const rest = await backendGet(`/api/restaurants/${id}`, { 'user-id': req.currentUser.id });
+    const rest = await backendGet(`/api/restaurants/${id}`, {
+      "user-id": req.currentUser.id,
+    });
     const restaurant = await rest.json();
-    return renderPage(res, 'admin/form', { restaurant, error: err.error || 'Could not update.' });
+    return renderPage(res, "admin/form", {
+      restaurant,
+      error: err.error || "Could not update.",
+    });
   }
 
-  res.redirect('/admin?message=Restaurant updated.');
+  res.redirect("/admin?message=Restaurant updated.");
 });
 
-app.post('/admin/restaurants/:id/delete', requireAdmin, async (req, res) => {
-  await backendDelete(`/api/restaurants/${req.params.id}`, { 'user-id': req.currentUser.id });
-  res.redirect('/admin?message=Restaurant deleted.');
+app.post("/admin/restaurants/:id/delete", requireAdmin, async (req, res) => {
+  await backendDelete(`/api/restaurants/${req.params.id}`, {
+    "user-id": req.currentUser.id,
+  });
+  res.redirect("/admin?message=Restaurant deleted.");
 });
 
-app.post('/admin/restaurants/:id/photos/:photoId/delete', requireAdmin, async (req, res) => {
-  await backendDelete(
-    `/api/restaurants/${req.params.id}/photos/${req.params.photoId}`,
-    { 'user-id': req.currentUser.id },
-  );
-  res.redirect(`/admin/restaurants/${req.params.id}/edit`);
-});
+app.post(
+  "/admin/restaurants/:id/photos/:photoId/delete",
+  requireAdmin,
+  async (req, res) => {
+    await backendDelete(
+      `/api/restaurants/${req.params.id}/photos/${req.params.photoId}`,
+      { "user-id": req.currentUser.id },
+    );
+    res.redirect(`/admin/restaurants/${req.params.id}/edit`);
+  },
+);
 
 // ── 404 catch-all ─────────────────────────────────────────────────────────────
 app.use((req, res) => {
-  renderPage(res.status(404), 'error', { status: 404, message: 'Page not found.' });
+  renderPage(res.status(404), "error", {
+    status: 404,
+    message: "Page not found.",
+  });
 });
 
 // ── Start ──────────────────────────────────────────────────────────────────────

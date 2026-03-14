@@ -21,13 +21,13 @@ database driver wrapper on the backend and adding a login instrumentation shell 
 
 ## What you will change
 
-| File | Lang | What changes |
-|------|------|-------------|
-| [backend/db/instrumented.go](../backend/db/instrumented.go) | Go | New — `DB` wrapper with OTel instrumentation |
-| [backend/db/db.go](../backend/db/db.go) | Go | Use `sql.Open` + `NewDB`; remove otelsql |
-| [backend/go.mod](../backend/go.mod) | Go | Remove `github.com/XSAM/otelsql` |
-| [frontend/otel-auth.js](../frontend/otel-auth.js) | JS | New — `instrumentLogin` wrapper with OTel span and metrics |
-| [frontend/server.js](../frontend/server.js) | JS | OAuth callback uses `instrumentLogin`; local login records the metric directly |
+| File                                                        | Lang | What changes                                                                   |
+| ----------------------------------------------------------- | ---- | ------------------------------------------------------------------------------ |
+| [backend/db/instrumented.go](../backend/db/instrumented.go) | Go   | New — `DB` wrapper with OTel instrumentation                                   |
+| [backend/db/db.go](../backend/db/db.go)                     | Go   | Use `sql.Open` + `NewDB`; remove otelsql                                       |
+| [backend/go.mod](../backend/go.mod)                         | Go   | Remove `github.com/XSAM/otelsql`                                               |
+| [frontend/otel-auth.js](../frontend/otel-auth.js)           | JS   | New — `instrumentLogin` wrapper with OTel span and metrics                     |
+| [frontend/server.js](../frontend/server.js)                 | JS   | OAuth callback uses `instrumentLogin`; local login records the metric directly |
 
 ---
 
@@ -120,20 +120,24 @@ cd backend && go mod tidy
 
 ### Step 3 — Create [frontend/otel-auth.js](../frontend/otel-auth.js)
 
-**Initialise tracer, meter, and instruments** once at module load:
+**Initialize tracer, meter, and instruments** once at module load:
 
 ```js
-const SCHEMA_URL = 'https://opentelemetry.io/schemas/1.40.0';
-const tracer = trace.getTracer('tapas-auth', undefined, { schemaUrl: SCHEMA_URL });
-const meter  = metrics.getMeter('tapas-auth', undefined, { schemaUrl: SCHEMA_URL });
-
-const loginDuration = meter.createHistogram('auth.client.login.duration', {
-  description: 'Duration of login attempts',
-  unit: 'ms',
+const SCHEMA_URL = "https://opentelemetry.io/schemas/1.40.0";
+const tracer = trace.getTracer("tapas-auth", undefined, {
+  schemaUrl: SCHEMA_URL,
+});
+const meter = metrics.getMeter("tapas-auth", undefined, {
+  schemaUrl: SCHEMA_URL,
 });
 
-const newUserCounter = meter.createCounter('auth.client.new_users', {
-  description: 'New users registered via OAuth provider',
+const loginDuration = meter.createHistogram("auth.client.login.duration", {
+  description: "Duration of login attempts",
+  unit: "ms",
+});
+
+const newUserCounter = meter.createCounter("auth.client.new_users", {
+  description: "New users registered via OAuth provider",
 });
 ```
 

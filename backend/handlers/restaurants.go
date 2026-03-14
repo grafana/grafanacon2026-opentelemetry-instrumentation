@@ -46,13 +46,20 @@ func slugify(name string) string {
 			b.WriteRune('_')
 		default:
 			switch r {
-			case 'á', 'à', 'â', 'ä', 'ã': b.WriteRune('a')
-			case 'é', 'è', 'ê', 'ë': b.WriteRune('e')
-			case 'í', 'ì', 'î', 'ï': b.WriteRune('i')
-			case 'ó', 'ò', 'ô', 'ö', 'õ': b.WriteRune('o')
-			case 'ú', 'ù', 'û', 'ü': b.WriteRune('u')
-			case 'ñ': b.WriteRune('n')
-			case 'ç': b.WriteRune('c')
+			case 'á', 'à', 'â', 'ä', 'ã':
+				b.WriteRune('a')
+			case 'é', 'è', 'ê', 'ë':
+				b.WriteRune('e')
+			case 'í', 'ì', 'î', 'ï':
+				b.WriteRune('i')
+			case 'ó', 'ò', 'ô', 'ö', 'õ':
+				b.WriteRune('o')
+			case 'ú', 'ù', 'û', 'ü':
+				b.WriteRune('u')
+			case 'ñ':
+				b.WriteRune('n')
+			case 'ç':
+				b.WriteRune('c')
 			}
 		}
 	}
@@ -379,4 +386,3 @@ func DeleteRestaurant(db *sql.DB) http.HandlerFunc {
 		w.WriteHeader(http.StatusNoContent)
 	}
 }
-

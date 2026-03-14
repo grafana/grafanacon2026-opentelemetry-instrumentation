@@ -19,12 +19,12 @@ Drop noisy spans with a custom sampler, suppress instrumentation modules, enrich
 
 ## What you will change
 
-| Service | File | What changes |
-|---------|------|-------------|
-| backend | [backend/sampler.go](../backend/sampler.go) | New file — custom sampler that drops `/api/health` spans |
-| backend | [backend/telemetry.go](../backend/telemetry.go) | Wire the custom sampler into the `TracerProvider` |
-| frontend | [docker-compose.yml](../docker-compose.yml) | Disable the `net` auto-instrumentation module |
-| frontend | [frontend/server.js](../frontend/server.js) | Set `enduser.id` and `enduser.pseudo.id` on every authenticated span |
+| Service   | File                                                        | What changes                                                                     |
+| --------- | ----------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| backend   | [backend/sampler.go](../backend/sampler.go)                 | New file — custom sampler that drops `/api/health` spans                         |
+| backend   | [backend/telemetry.go](../backend/telemetry.go)             | Wire the custom sampler into the `TracerProvider`                                |
+| frontend  | [docker-compose.yml](../docker-compose.yml)                 | Disable the `net` auto-instrumentation module                                    |
+| frontend  | [frontend/server.js](../frontend/server.js)                 | Set `enduser.id` and `enduser.pseudo.id` on every authenticated span             |
 | collector | [otel-collector/config.yaml](../otel-collector/config.yaml) | Filter processor that drops static-file and health-check spans from the frontend |
 
 ---
@@ -33,7 +33,7 @@ Drop noisy spans with a custom sampler, suppress instrumentation modules, enrich
 
 Health-check endpoints are polled constantly and generate a large volume of low-value spans. A custom sampler drops them before they leave the process.
 
-We implement this for the **Go backend**, which uses manual SDK initialisation. The **Node.js frontend** uses zero-code auto-instrumentation, so there is nowhere to wire up a custom sampler. Two alternatives exist:
+We implement this for the **Go backend**, which uses manual SDK initialization. The **Node.js frontend** uses zero-code auto-instrumentation, so there is nowhere to wire up a custom sampler. Two alternatives exist:
 
 - **Disable the instrumentation entirely** — no span is created. See [Part 2](#part-2--disable-noisy-auto-instrumentation-nodejs-frontend).
 - **Filter in the collector** — see [Part 4](#part-4--filter-frontend-noise-in-the-collector). Only safe for leaf spans; dropping a parent breaks the trace tree.
@@ -145,7 +145,7 @@ In [frontend/server.js](../frontend/server.js), add the import and extend the ex
 `trace.getActiveSpan()` returns the span the auto-instrumentation already created — no manual span needed.
 
 - `enduser.id` — username, useful for searching traces by user.
-- `enduser.pseudo.id` — opaque internal DB ID, stable identifier without a recognisable identity.
+- `enduser.pseudo.id` — opaque internal DB ID, stable identifier without a recognizable identity.
 
 > [!WARNING]
 > `enduser.id` is personal data. Check your privacy policy before capturing it.

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/workshop/tapas-backend/chaos"
 	_ "github.com/lib/pq"
+	"github.com/workshop/tapas-backend/chaos"
 )
 
 func Connect() (*sql.DB, error) {

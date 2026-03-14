@@ -2,17 +2,33 @@
 
 In this exercise you add [OBI](https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation) — the OpenTelemetry eBPF Instrument — to the stack. OBI automatically captures HTTP and RPC metrics for any process on the host using Linux eBPF, with no code changes or language agents required.
 
+> [!NOTE]
+> OBI uses Linux eBPF and requires a Linux host. On macOS, the `obi` container will fail to start — skip this exercise or use a Linux VM / remote Docker context.
+
+## Contents
+
+- [What you will change](#what-you-will-change)
+- [Part 1 — Deploy OBI](#part-1--deploy-obi)
+  - [Step 1 — Add the OBI service to docker-compose](#step-1--add-the-obi-service-to-docker-compose)
+  - [Step 2 — Create the OBI config](#step-2--create-the-obi-config)
+- [Part 2 — Add the Grafana dashboard](#part-2--add-the-grafana-dashboard)
+  - [Step 3 — Add the Grafana dashboard](#step-3--add-the-grafana-dashboard)
+- [Verify](#verify)
+- [Catch up](#catch-up)
+
 ## What you will change
 
-| File | What changes |
-|------|-------------|
-| [docker-compose.yml](../docker-compose.yml) | Add the `obi` service; expose port 4318 on the collector |
-| [obi/obi-config.yml](../obi/obi-config.yml) | New OBI config — targets the app containers and exports metrics to the collector |
-| [grafana/dashboards/red-metrics.json](../grafana/dashboards/red-metrics.json) | New RED metrics dashboard — request rate, error rate, and latency per service |
+| Service | File                                                                          | What changes                                                                     |
+| ------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| —       | [docker-compose.yml](../docker-compose.yml)                                   | Add the `obi` service; expose port 4318 on the collector                         |
+| obi     | [obi/obi-config.yml](../obi/obi-config.yml)                                   | New OBI config — targets the app containers and exports metrics to the collector |
+| —       | [grafana/dashboards/red-metrics.json](../grafana/dashboards/red-metrics.json) | New RED metrics dashboard — request rate, error rate, and latency per service    |
 
 ---
 
-## Step 1 — Add the OBI service to docker-compose
+## Part 1 — Deploy OBI
+
+### Step 1 — Add the OBI service to docker-compose
 
 OBI needs to run as a privileged container with `pid: host` so it can observe all processes on the host. It also needs access to the Docker socket to attach container metadata to metrics.
 
@@ -44,9 +60,7 @@ Also expose port 4318 on the `otel-collector` service so OBI can reach it:
 +      - 4318
 ```
 
----
-
-## Step 2 — Create the OBI config
+### Step 2 — Create the OBI config
 
 Create [obi/obi-config.yml](../obi/obi-config.yml). The `discovery.instrument` list scopes OBI to only the app containers — without it OBI would instrument every process on the host, including the collector itself.
 
@@ -64,7 +78,9 @@ discovery:
 
 ---
 
-## Step 3 — Add the Grafana dashboard
+## Part 2 — Add the Grafana dashboard
+
+### Step 3 — Add the Grafana dashboard
 
 A pre-built RED metrics dashboard lives in [grafana/dashboards/red-metrics.json](../grafana/dashboards/red-metrics.json). It is automatically provisioned on startup.
 
@@ -78,11 +94,6 @@ git checkout 02-setup-obi -- grafana/dashboards/red-metrics.json
 
 ```bash
 docker compose up --build
-```
-
-Generate some traffic:
-
-```bash
 make load
 ```
 

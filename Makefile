@@ -1,4 +1,4 @@
-.PHONY: test test-backend test-frontend load
+.PHONY: test test-backend test-frontend load spell format format-check
 
 test: test-backend test-frontend
 
@@ -13,3 +13,14 @@ test-frontend:
 load:
 	@which k6 > /dev/null 2>&1 || npm install -g k6
 	k6 run load-test.js
+
+spell:
+	npx cspell "**/*.md" "**/*.go" "**/*.js"
+
+format:
+	npx prettier --write "**/*.md" "**/*.js"
+	gofmt -w backend/
+
+format-check:
+	npx prettier --check "**/*.md" "**/*.js"
+	@test -z "$$(gofmt -l backend/)" || (echo "Go files need formatting:"; gofmt -l backend/; exit 1)
