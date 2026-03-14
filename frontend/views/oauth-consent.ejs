@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign in – Acme SSO</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f0f4ff; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+    .card { background: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,.15); padding: 48px 40px 36px; width: 360px; }
+    .logo { font-size: 22px; font-weight: 700; color: #2563eb; margin-bottom: 24px; }
+    h1 { font-size: 24px; font-weight: 400; color: #1e293b; margin: 0 0 8px; }
+    p.subtitle { font-size: 15px; color: #64748b; margin: 0 0 28px; }
+    label { font-size: 14px; color: #64748b; display: block; margin-bottom: 6px; }
+    input[type=text] { width: 100%; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 4px; padding: 13px 15px; font-size: 16px; outline: none; color: #1e293b; }
+    input[type=text]:focus { border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37,99,235,.2); }
+    .actions { display: flex; justify-content: space-between; align-items: center; margin-top: 32px; }
+    .btn-cancel { background: none; border: none; color: #2563eb; font-size: 14px; font-weight: 500; padding: 10px 0; cursor: pointer; text-decoration: none; }
+    .btn-next { background: #2563eb; color: #fff; border: none; border-radius: 4px; font-size: 14px; font-weight: 500; padding: 10px 24px; cursor: pointer; }
+    .btn-next:hover { background: #1d4ed8; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">Acme SSO</div>
+    <h1>Sign in</h1>
+    <p class="subtitle">to continue to Barcelona Tapas Finder</p>
+    <form method="post" action="/auth/acme/callback">
+      <input type="hidden" name="state" value="<%= state %>" />
+      <label for="username">Email or username</label>
+      <input type="text" id="username" name="username" required autocomplete="username" placeholder="username" />
+      <div class="actions">
+        <a href="/login" class="btn-cancel">Cancel</a>
+        <button type="submit" class="btn-next">Next</button>
+      </div>
+    </form>
+  </div>
+</body>
+</html>

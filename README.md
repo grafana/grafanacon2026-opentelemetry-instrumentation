@@ -35,6 +35,9 @@ The workshop is divided into sections, each building on the previous one. Every 
 | [01 — Setup infrastructure metrics in OpenTelemetry Collector](exercises/01-setup-infra-metrics.md) | `01-setup-infra-metrics` |
 | [02 — Setup eBPF instrumentation](exercises/02-setup-obi.md) | `02-setup-obi` |
 | [03 — Instrumenting applications](exercises/03-instrumenting-applications.md) | `03-instrumenting-applications` |
+| [04 — Customizing instrumentations](exercises/04-customizing-instrumentations.md) | `04-customizing-instrumentations` |
+| [05 — Post-processing telemetry](exercises/05-post-processing.md) | `05-post-processing` |
+| [06 — Manual database instrumentation](exercises/06-manual-instrumentation.md) | `06-manual-instrumentation` |
 
 ## Running the Application
 
@@ -69,6 +72,7 @@ We'll add dashboards throughout the workshop.
 ├── db/               # Database init SQL
 ├── frontend/         # Node.js/Express frontend
 ├── grafana/          # Grafana dashboard definitions and provisioning config
+├── obi/              # OTel eBPF Instrument config
 ├── otel-collector/   # OpenTelemetry Collector config
 ├── tests/            # Integration tests
 └── docker-compose.yml

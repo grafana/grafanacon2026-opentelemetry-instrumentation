@@ -103,6 +103,17 @@ app.use((req, res, next) => {
   next();
 });
 
+// Health check — confirms the frontend process is up and backend is reachable
+app.get('/health', async (_req, res) => {
+  try {
+    const r = await fetch(`${BACKEND_URL}/api/health`);
+    const body = await r.json();
+    res.status(r.ok ? 200 : 502).json({ status: r.ok ? 'ok' : 'error', backend: body });
+  } catch (err) {
+    res.status(502).json({ status: 'error', backend: err.message });
+  }
+});
+
 // Proxy /api/* to backend — lets browser fetch /api/... without CORS issues,
 // and also lets the photo <img> tag work via the same origin.
 app.use('/api', async (req, res) => {
@@ -258,6 +269,48 @@ app.post('/login', async (req, res) => {
     res.redirect('/');
   } catch {
     renderPage(res, 'login', { error: 'Could not reach the backend.' });
+  }
+});
+
+// OAuth — initiate: generate state nonce, redirect to fake consent page
+app.get('/auth/acme', (_req, res) => {
+  const state = crypto.randomBytes(16).toString('hex');
+  res.setHeader('Set-Cookie', `oauth_state=${state}; Path=/; HttpOnly; SameSite=Lax; Max-Age=300`);
+  res.redirect(`/auth/acme/consent?state=${state}`);
+});
+
+// OAuth — fake Acme SSO consent page
+app.get('/auth/acme/consent', (req, res) => {
+  res.render('oauth-consent', { layout: false, state: req.query.state || '' });
+});
+
+// OAuth — callback: validate state, fake token exchange, look up or create user
+app.post('/auth/acme/callback', async (req, res) => {
+  const { username, state } = req.body;
+  try {
+    // Validate OAuth state to prevent CSRF
+    if (!state || state !== req.cookies.oauth_state) {
+      return renderPage(res, 'login', { error: 'Login failed. Please try again.' });
+    }
+    res.setHeader('Set-Cookie', 'oauth_state=; Path=/; Max-Age=0');
+
+    // Simulate token exchange round-trip to identity provider (80–200 ms)
+    await new Promise(r => setTimeout(r, 80 + Math.random() * 120));
+
+    // Look up existing user or create one on first OAuth sign-in
+    const r = await backendGet(`/api/users/by-username/${encodeURIComponent(username)}`);
+    let user;
+    if (r.status === 404) {
+      const created = await backendPost('/api/users', { username });
+      user = await created.json();
+    } else {
+      user = await r.json();
+    }
+    const encoded = encodeURIComponent(JSON.stringify(user));
+    res.setHeader('Set-Cookie', `tapas_user=${encoded}; Path=/; HttpOnly; SameSite=Lax`);
+    res.redirect('/');
+  } catch {
+    renderPage(res, 'login', { error: 'Login failed. Please try again.' });
   }
 });
 
