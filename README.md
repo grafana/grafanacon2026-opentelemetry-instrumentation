@@ -1,7 +1,7 @@
 # Barcelona Tapas Finder — OpenTelemetry Workshop
 
 > [!IMPORTANT]
-> You are on **[Exercise 03 — Instrumenting applications](exercises/03-instrumenting-applications.md)**
+> You are on **[Exercise 04 — Customizing instrumentations](exercises/04-customizing-instrumentations.md)**
 
 A demo application for learning OpenTelemetry instrumentation. It helps users discover tapas restaurants in Barcelona.
 
@@ -98,8 +98,8 @@ Configuration is in [obi/obi-config.yaml](obi/obi-config.yaml). It targets only 
 
 Both services are instrumented with the OpenTelemetry SDK and export traces, metrics, and logs via OTLP HTTP to the collector.
 
-- **Frontend (Node.js)**: [zero-code auto-instrumentation](https://opentelemetry.io/docs/zero-code/js/) via `@opentelemetry/auto-instrumentations-node` loaded with `--require`. Logs are forwarded to the OTel SDK via `@opentelemetry/winston-transport`.
-- **Backend (Go)**: Declarative SDK initialization via [otelconf](https://github.com/open-telemetry/opentelemetry-go-contrib/tree/main/otelconf) — [backend/otel-config.yaml](backend/otel-config.yaml) declares exporters, readers, and propagators; [backend/telemetry.go](backend/telemetry.go) embeds it and calls a single `otelconf.NewSDK(...)`. Logs are bridged from `slog`.
+- **Frontend (Node.js)**: [zero-code auto-instrumentation](https://opentelemetry.io/docs/zero-code/js/) via `@opentelemetry/auto-instrumentations-node` loaded with `--require`. Logs are forwarded to the OTel SDK via `@opentelemetry/winston-transport`. The noisy `net` instrumentation is disabled via `OTEL_NODE_DISABLED_INSTRUMENTATIONS`, and `enduser.id`/`enduser.pseudo.id` are attached to the active span once the user is resolved.
+- **Backend (Go)**: Declarative SDK initialization via [otelconf](https://github.com/open-telemetry/opentelemetry-go-contrib/tree/main/otelconf) — [backend/otel-config.yaml](backend/otel-config.yaml) declares exporters, readers, and propagators; [backend/telemetry.go](backend/telemetry.go) embeds it and calls a single `otelconf.NewSDK(...)`. Logs are bridged from `slog`. `/api/health` is filtered out of traces via `otelmux.WithFilter`, and traces are head-sampled at 50% (`parentbased_traceidratio`).
 
 ### Grafana Dashboards
 

@@ -9,6 +9,7 @@ const winston = require("winston");
 const {
   OpenTelemetryTransportV3,
 } = require("@opentelemetry/winston-transport");
+const { trace } = require("@opentelemetry/api");
 
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || "info",
@@ -137,6 +138,15 @@ app.use((req, res, next) => {
     req.currentUser = null;
   }
   res.locals.currentUser = req.currentUser;
+
+  if (req.currentUser) {
+    const span = trace.getActiveSpan();
+    if (span) {
+      span.setAttribute("enduser.id", req.currentUser.username);
+      span.setAttribute("enduser.pseudo.id", String(req.currentUser.id));
+    }
+  }
+
   next();
 });
 

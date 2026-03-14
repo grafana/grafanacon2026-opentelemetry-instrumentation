@@ -35,7 +35,11 @@ func main() {
 	defer db.Close()
 
 	r := mux.NewRouter()
-	r.Use(otelmux.Middleware("backend"))
+	r.Use(otelmux.Middleware("backend",
+		otelmux.WithFilter(func(r *http.Request) bool {
+			return r.URL.Path != "/api/health"
+		}),
+	))
 	r.Use(middleware.Logging)
 	r.Use(middleware.LoadUser(db))
 

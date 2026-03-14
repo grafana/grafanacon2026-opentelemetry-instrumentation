@@ -22,6 +22,7 @@ func setupTelemetry(_ context.Context) (func(context.Context) error, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	otel.SetTracerProvider(sdk.TracerProvider())
 	otel.SetMeterProvider(sdk.MeterProvider())
 	otel.SetTextMapPropagator(sdk.Propagator())
