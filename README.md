@@ -1,7 +1,7 @@
 # Barcelona Tapas Finder — OpenTelemetry Workshop
 
 > [!IMPORTANT]
-> You are on **[Exercise 01 — Setup infrastructure metrics](exercises/01-setup-infra-metrics.md)**
+> You are on **[Exercise 02 — Setup OBI](exercises/02-setup-obi.md)**
 
 A demo application for learning OpenTelemetry instrumentation. It helps users discover tapas restaurants in Barcelona.
 
@@ -88,13 +88,20 @@ and forwards it to LGTM via OTLP HTTP and also scrapes infrastructure metrics:
 - **docker_stats**: Per-container resource metrics collected every 10s via the Docker socket
 - **resourcedetection** processor enriches every signal with host and env resource attributes
 
+### OBI — OTel eBPF Instrument
+
+[OBI](https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation) automatically instruments processes using Linux eBPF — no code changes or language agents required. It runs as a privileged container with `pid: host` so it can observe all processes on the host.
+
+Configuration is in [obi/obi-config.yaml](obi/obi-config.yaml). It targets only the `backend` and `frontend` containers and exports metrics via OTLP to the collector every 5s.
+
 ### Grafana Dashboards
 
 Open Grafana at `http://localhost:3000` (no login required).
 
-| Dashboard    | URL                                   | Description                                                                       |
-| ------------ | ------------------------------------- | --------------------------------------------------------------------------------- |
-| Host Metrics | <http://localhost:3000/d/hostmetrics> | CPU, memory, disk, and network metrics for the host; CPU and memory per container |
+| Dashboard       | URL                                   | Description                                                                                     |
+| --------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Host Metrics    | <http://localhost:3000/d/hostmetrics> | CPU, memory, disk, and network metrics for the host; CPU and memory per container               |
+| OBI RED Metrics | <http://localhost:3000/d/red-metrics> | Request rate, error rate, and latency (P95) for inbound and outbound HTTP/RPC calls per service |
 
 ## Technical Details
 
@@ -106,6 +113,7 @@ Open Grafana at `http://localhost:3000` (no login required).
 ├── db/               # Database init SQL
 ├── frontend/         # Node.js/Express frontend
 ├── grafana/          # Grafana dashboard definitions and provisioning config
+├── obi/              # OTel eBPF Instrument config
 ├── otel-collector/   # OpenTelemetry Collector config
 ├── tests/            # Integration tests
 └── docker-compose.yaml

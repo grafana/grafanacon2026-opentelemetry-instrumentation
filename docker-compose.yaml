@@ -80,6 +80,23 @@ services:
     depends_on:
       - lgtm
 
+  obi:
+    container_name: obi
+    image: otel/ebpf-instrument:v0.6.0
+    # we can narrow the permissions with Linux capabilities
+    # giving full privileges for the sake of simplicity
+    privileged: true
+    # important so OBI can inspect other processes in the host
+    pid: host
+    volumes:
+      # required if you want extra container metadata attributes
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./obi/obi-config.yaml:/etc/obi/config.yaml:ro
+    environment:
+      OTEL_EBPF_CONFIG_PATH: /etc/obi/config.yaml
+    depends_on:
+      - otel-collector
+
   load-test:
     container_name: load-test
     image: grafana/k6
