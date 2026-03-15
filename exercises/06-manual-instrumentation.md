@@ -213,7 +213,7 @@ docker compose up --build
 make load  # runs continuously — keep it running in a separate terminal, Ctrl+C to stop
 ```
 
-Open Grafana at <http://localhost:3000/d/apm-dashboard/apm-dashboard>.
+Open Grafana at <http://localhost:3000/d/apm-dashboard>.
 
 ### Backend — DB spans
 
