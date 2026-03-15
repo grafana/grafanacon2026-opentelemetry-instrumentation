@@ -27,6 +27,9 @@ services:
       DB_URL: postgres://postgres:postgres@db:5432/tapas?sslmode=disable
       PORT: "8080"
       CHAOS_MODE: ${CHAOS_MODE:-}
+      OTEL_SERVICE_NAME: backend
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_METRIC_EXPORT_INTERVAL: "5000"
     ports:
       - "8081:8080"
     depends_on:
@@ -47,6 +50,10 @@ services:
       BACKEND_URL: http://backend:8080
       PORT: "8080"
       CHAOS_MODE: ${CHAOS_MODE:-}
+      OTEL_SERVICE_NAME: frontend
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_METRIC_EXPORT_INTERVAL: "5000"
+      OTEL_SEMCONV_STABILITY_OPT_IN: http      # opt in to stable HTTP semconv (http.request.method, etc.)
     ports:
       - "8080:8080"
     healthcheck:

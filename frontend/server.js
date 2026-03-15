@@ -6,12 +6,18 @@ const cookieParser = require("cookie-parser");
 const ejsLayouts = require("express-ejs-layouts");
 const crypto = require("crypto");
 const winston = require("winston");
+const {
+  OpenTelemetryTransportV3,
+} = require("@opentelemetry/winston-transport");
 
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || "info",
   format: winston.format.json(),
   defaultMeta: { service: "tapas-frontend" },
-  transports: [new winston.transports.Console({ level: "warn" })],
+  transports: [
+    new winston.transports.Console({ level: "warn" }),
+    new OpenTelemetryTransportV3(),
+  ],
 });
 
 // CHAOS: blocks the Node.js event loop for ~1-2s per request on the search

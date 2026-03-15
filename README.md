@@ -1,7 +1,7 @@
 # Barcelona Tapas Finder — OpenTelemetry Workshop
 
 > [!IMPORTANT]
-> You are on **[Exercise 02 — Setup OBI](exercises/02-setup-obi.md)**
+> You are on **[Exercise 03 — Instrumenting applications](exercises/03-instrumenting-applications.md)**
 
 A demo application for learning OpenTelemetry instrumentation. It helps users discover tapas restaurants in Barcelona.
 
@@ -94,14 +94,22 @@ and forwards it to LGTM via OTLP HTTP and also scrapes infrastructure metrics:
 
 Configuration is in [obi/obi-config.yaml](obi/obi-config.yaml). It targets only the `backend` and `frontend` containers and exports metrics via OTLP to the collector every 5s.
 
+### In-Process Instrumentation
+
+Both services are instrumented with the OpenTelemetry SDK and export traces, metrics, and logs via OTLP HTTP to the collector.
+
+- **Frontend (Node.js)**: [zero-code auto-instrumentation](https://opentelemetry.io/docs/zero-code/js/) via `@opentelemetry/auto-instrumentations-node` loaded with `--require`. Logs are forwarded to the OTel SDK via `@opentelemetry/winston-transport`.
+- **Backend (Go)**: Declarative SDK initialization via [otelconf](https://github.com/open-telemetry/opentelemetry-go-contrib/tree/main/otelconf) — [backend/otel-config.yaml](backend/otel-config.yaml) declares exporters, readers, and propagators; [backend/telemetry.go](backend/telemetry.go) embeds it and calls a single `otelconf.NewSDK(...)`. Logs are bridged from `slog`.
+
 ### Grafana Dashboards
 
 Open Grafana at `http://localhost:3000` (no login required).
 
-| Dashboard       | URL                                   | Description                                                                                     |
-| --------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| Host Metrics    | <http://localhost:3000/d/hostmetrics> | CPU, memory, disk, and network metrics for the host; CPU and memory per container               |
-| OBI RED Metrics | <http://localhost:3000/d/red-metrics> | Request rate, error rate, and latency (P95) for inbound and outbound HTTP/RPC calls per service |
+| Dashboard       | URL                                     | Description                                                                                     |
+| --------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Host Metrics    | <http://localhost:3000/d/hostmetrics>   | CPU, memory, disk, and network metrics for the host; CPU and memory per container               |
+| OBI RED Metrics | <http://localhost:3000/d/red-metrics>   | Request rate, error rate, and latency (P95) for inbound and outbound HTTP/RPC calls per service |
+| APM Dashboard   | <http://localhost:3000/d/apm-dashboard> | Traces, metrics, and logs from in-process OTel SDK instrumentation                              |
 
 ## Technical Details
 
