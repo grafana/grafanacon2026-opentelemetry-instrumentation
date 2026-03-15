@@ -20,11 +20,11 @@ In this exercise you configure the OpenTelemetry Collector to scrape infrastruct
 
 ## What you will change
 
-| Service   | File                                                                          | What changes                                                                                                |
-| --------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| collector | [otel-collector/config.yaml](../otel-collector/config.yaml)                   | Add `hostmetrics` and `docker_stats` receivers; add `resourcedetection` processor; wire them into pipelines |
-| collector | [docker-compose.yml](../docker-compose.yml)                                   | Mount the Docker socket and host filesystem into the collector container                                    |
-| —         | [grafana/dashboards/hostmetrics.json](../grafana/dashboards/hostmetrics.json) | New dashboard — CPU, memory, disk, network for the host and per-container CPU/memory                        |
+| Service   | File                                                                                                                                                                           | What changes                                                                                                |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| collector | [otel-collector/config.yaml](../otel-collector/config.yaml)                                                                                                                    | Add `hostmetrics` and `docker_stats` receivers; add `resourcedetection` processor; wire them into pipelines |
+| collector | [docker-compose.yml](../docker-compose.yml)                                                                                                                                    | Mount the Docker socket and host filesystem into the collector container                                    |
+| —         | [grafana/dashboards/hostmetrics.json](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/01-setup-infra-metrics/grafana/dashboards/hostmetrics.json) | New dashboard — CPU, memory, disk, network for the host and per-container CPU/memory                        |
 
 ---
 
@@ -43,7 +43,7 @@ The `hostmetrics` receiver reads from the host filesystem and `docker_stats` rea
 ```
 
 > [!NOTE]
-> **macOS:** Docker Desktop runs containers inside a Linux VM, so `/` here is the VM's root filesystem — not your Mac's. `hostmetrics` will report the VM's CPU, memory, and disk rather than your laptop's. The dashboard will populate and look correct, but the numbers reflect the VM. This is expected behaviour on macOS.
+> **macOS:** Docker Desktop runs containers inside a Linux VM, so `/` here is the VM's root filesystem — not your Mac's. `hostmetrics` will report the VM's CPU, memory, and disk rather than your laptop's. The dashboard will populate and look correct, but the numbers reflect the VM. This is expected behavior on macOS.
 
 ---
 
@@ -138,10 +138,10 @@ processors:
 
 ### Step 5 — Add the Grafana dashboard
 
-A pre-built dashboard definition lives in [grafana/dashboards/hostmetrics.json](../grafana/dashboards/hostmetrics.json). It is automatically provisioned on startup (no manual import needed).
+A pre-built dashboard definition lives in [grafana/dashboards/hostmetrics.json](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/01-setup-infra-metrics/grafana/dashboards/hostmetrics.json). It is automatically provisioned on startup (no manual import needed).
 
 ```bash
-# copies only this file from the solution branch — does not switch branches
+# copies only this file from the exercise branch — does not switch branches
 git checkout 01-setup-infra-metrics -- grafana/dashboards/hostmetrics.json
 ```
 
@@ -160,7 +160,7 @@ Open <http://localhost:3000/d/hostmetrics>. You should see CPU, memory, disk, an
 
 ## Catch up
 
-To skip ahead to the completed state of this exercise, check out the solution branch:
+To skip ahead to the completed state of this exercise, check out the exercise branch:
 
 ```bash
 git checkout 01-setup-infra-metrics

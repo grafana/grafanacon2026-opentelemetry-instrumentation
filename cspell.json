@@ -47,7 +47,8 @@
     "Poble",
     "Barri",
     "Gòtic",
-    "XSAM"
+    "XSAM",
+    "drilldown"
   ],
   "ignoreWords": []
 }

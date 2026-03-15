@@ -37,11 +37,11 @@ docker compose up --build
 
 Browse the app at `http://localhost:8080` — search restaurants, log in, submit ratings
 
-Open Grafana at `http://localhost:3000` — the observability stack is configured and ready; we'll add instrumentation to populate it during the workshop
+Open Grafana at `http://localhost:3000` — the observability stack is configured and ready; we'll add instrumentation to populate it during the workshop. You should still be able to see OTel Collector self-diagnostic metrics in the [metrics drilldown](http://localhost:3000/a/grafana-metricsdrilldown-app/)
 
 ## Workshop Structure
 
-The workshop is divided into sections, each building on the previous one. Every section has a corresponding solution branch you can check out if you get stuck or want to catch up.
+The workshop is divided into sections, each building on the previous one. Every section has a corresponding exercise branch you can check out if you get stuck or want to catch up.
 
 | Exercise                                                                                            | Branch                            |
 | --------------------------------------------------------------------------------------------------- | --------------------------------- |

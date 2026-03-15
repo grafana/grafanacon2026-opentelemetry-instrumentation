@@ -23,13 +23,13 @@ database driver wrapper on the backend and adding a login instrumentation shell 
 
 ## What you will change
 
-| File                                                        | Lang | What changes                                                                   |
-| ----------------------------------------------------------- | ---- | ------------------------------------------------------------------------------ |
-| [backend/db/instrumented.go](../backend/db/instrumented.go) | Go   | New — `DB` wrapper with OTel instrumentation                                   |
-| [backend/db/db.go](../backend/db/db.go)                     | Go   | Use `sql.Open` + `NewDB`; remove otelsql                                       |
-| [backend/go.mod](../backend/go.mod)                         | Go   | Remove `github.com/XSAM/otelsql`                                               |
-| [frontend/otel-auth.js](../frontend/otel-auth.js)           | JS   | New — `instrumentLogin` wrapper with OTel span and metrics                     |
-| [frontend/server.js](../frontend/server.js)                 | JS   | OAuth callback uses `instrumentLogin`; local login records the metric directly |
+| File                                                                                                                                                            | Lang | What changes                                                                   |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ------------------------------------------------------------------------------ |
+| [backend/db/instrumented.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/06-manual-instrumentation/backend/db/instrumented.go) | Go   | New — `DB` wrapper with OTel instrumentation                                   |
+| [backend/db/db.go](../backend/db/db.go)                                                                                                                         | Go   | Use `sql.Open` + `NewDB`; remove otelsql                                       |
+| [backend/go.mod](../backend/go.mod)                                                                                                                             | Go   | Remove `github.com/XSAM/otelsql`                                               |
+| [frontend/otel-auth.js](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/06-manual-instrumentation/frontend/otel-auth.js)           | JS   | New — `instrumentLogin` wrapper with OTel span and metrics                     |
+| [frontend/server.js](../frontend/server.js)                                                                                                                     | JS   | OAuth callback uses `instrumentLogin`; local login records the metric directly |
 
 ---
 
@@ -53,7 +53,7 @@ pure login logic.
 
 ## Part 1 — Backend DB (Go)
 
-### Step 1 — Create [backend/db/instrumented.go](../backend/db/instrumented.go)
+### Step 1 — Create [backend/db/instrumented.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/06-manual-instrumentation/backend/db/instrumented.go)
 
 **Starting a span** — use a low-cardinality summary (e.g. `SELECT restaurants`) as the span
 name and `db.query.summary` attribute, and include the full SQL as `db.query.text`:
@@ -89,7 +89,7 @@ func endSpan(ctx context.Context, span trace.Span, err error) {
 }
 ```
 
-The slog bridge in [backend/telemetry.go](../backend/telemetry.go) exports the log and
+The slog bridge in [backend/telemetry.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/06-manual-instrumentation/backend/telemetry.go) exports the log and
 correlates it with the active trace via `ctx`.
 
 Each method also records a `db.client.operation.duration` histogram with the same
@@ -120,7 +120,7 @@ cd backend && go mod tidy
 
 ## Part 2 — Frontend Login (Node.js)
 
-### Step 3 — Create [frontend/otel-auth.js](../frontend/otel-auth.js)
+### Step 3 — Create [frontend/otel-auth.js](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/06-manual-instrumentation/frontend/otel-auth.js)
 
 **Initialize tracer, meter, and instruments** once at module load:
 
@@ -194,7 +194,7 @@ app.post('/auth/acme/callback', async (req, res) => {
 Both parts use **in-memory exporters** for fast, hermetic unit tests — no real database
 or trace backend required.
 
-**Backend** — [tests/backend/instrumentation_test.go](../tests/backend/instrumentation_test.go)
+**Backend** — [tests/backend/instrumentation_test.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/06-manual-instrumentation/tests/backend/instrumentation_test.go)
 uses an in-memory span exporter against a real database.
 
 **Frontend** — [tests/frontend/server.test.js](../tests/frontend/server.test.js)

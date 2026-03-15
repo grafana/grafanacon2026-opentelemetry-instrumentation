@@ -28,7 +28,7 @@ Stop the conflicting process, then re-run `docker compose up --build`.
 
 `make load` uses [k6](https://k6.io) for load generation. If k6 is not installed it falls back to running k6 in Docker automatically — no extra setup needed as long as Docker is running.
 
-To install k6 natively: <https://k6.io/docs/get-started/installation/>
+To install k6 locally: <https://k6.io/docs/get-started/installation/>
 
 ## Running backend tests manually
 
@@ -49,4 +49,4 @@ Syntax errors in `otel-collector/config.yaml` cause the collector to exit silent
 docker compose logs otel-collector
 ```
 
-Validate OTTL expressions by looking for `error_mode: ignore` — without it, a bad expression drops the entire telemetry item.
+Validate OTTL expressions by looking for `error_mode: ignore` — without it, a bad expression drops the entire telemetry item. You can also use the [OTTL playground](https://ottl.run/) to validate expressions.
