@@ -202,7 +202,7 @@ The condition drops a span when all three are true: service is `frontend`, span 
 
 ```bash
 docker compose up --build
-make load
+make load  # runs continuously — keep it running in a separate terminal, Ctrl+C to stop
 ```
 
 Run the TraceQL queries below in Grafana → **Explore** (compass icon in the left sidebar) → select the **Tempo** datasource → paste the query.

@@ -197,7 +197,7 @@ Also mount the alerting provisioning directory in [docker-compose.yml](../docker
 
 ```bash
 docker compose up --build
-make load
+make load  # runs continuously — keep it running in a separate terminal, Ctrl+C to stop
 ```
 
 Open <http://localhost:3000/d/apm-dashboard/apm-dashboard>. You should see traces, metrics, and logs from both services.

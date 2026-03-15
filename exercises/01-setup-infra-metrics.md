@@ -151,7 +151,7 @@ git checkout 01-setup-infra-metrics -- grafana/dashboards/hostmetrics.json
 
 ```bash
 docker compose up --build
-make load
+make load  # runs continuously — keep it running in a separate terminal, Ctrl+C to stop
 ```
 
 Open <http://localhost:3000/d/hostmetrics>. You should see CPU, memory, disk, and network panels populated within a few seconds.

@@ -116,7 +116,7 @@ Each rename copies the value to the new key then deletes the old one. The `where
 
 ```bash
 docker compose up --build
-make load
+make load  # runs continuously — keep it running in a separate terminal, Ctrl+C to stop
 ```
 
 **Part 1** — log in as `alice`, browse the app, then open Grafana → **Explore** → **Tempo**:

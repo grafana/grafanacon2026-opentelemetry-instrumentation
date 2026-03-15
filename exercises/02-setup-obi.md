@@ -97,7 +97,7 @@ git checkout 02-setup-obi -- grafana/dashboards/red-metrics.json
 
 ```bash
 docker compose up --build
-make load
+make load  # runs continuously — keep it running in a separate terminal, Ctrl+C to stop
 ```
 
 Open <http://localhost:3000/d/red-metrics>. You should see request rate, error rate, and P95 latency panels for the `backend` and `frontend` services.
