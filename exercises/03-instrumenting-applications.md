@@ -104,6 +104,7 @@ go get go.opentelemetry.io/otel \
        go.opentelemetry.io/contrib/bridges/otelslog \
        go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux
 go mod tidy
+cd ..
 ```
 
 ### Step 6 — Create [backend/telemetry.go](../backend/telemetry.go)
