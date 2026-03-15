@@ -1,4 +1,4 @@
-.PHONY: test test-backend test-frontend load spell format format-check
+.PHONY: test test-backend test-frontend load spell links format format-check
 
 test: test-backend test-frontend
 
@@ -16,6 +16,10 @@ load:
 
 spell:
 	npx cspell "**/*.md" "**/*.go" "**/*.js"
+
+links:
+	@test -n "$$GITHUB_TOKEN" || echo "Warning: GITHUB_TOKEN not set, GitHub links may be rate-limited"
+	lychee .
 
 format:
 	npx prettier --write "**/*.md" "**/*.js"
