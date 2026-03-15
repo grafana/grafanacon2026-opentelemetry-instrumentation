@@ -205,6 +205,8 @@ docker compose up --build
 make load
 ```
 
+Run the TraceQL queries below in Grafana → **Explore** (compass icon in the left sidebar) → select the **Tempo** datasource → paste the query.
+
 **Parts 1 & 4 — health-check spans dropped** — should return no results:
 
 ```traceql

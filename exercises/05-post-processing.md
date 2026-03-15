@@ -119,7 +119,7 @@ docker compose up --build
 make load
 ```
 
-**Part 1** — log in as `alice`, browse the app, then query Tempo:
+**Part 1** — log in as `alice`, browse the app, then open Grafana → **Explore** → **Tempo**:
 
 ```traceql
 { resource.service.name = "frontend" && span.enduser.id != nil }
