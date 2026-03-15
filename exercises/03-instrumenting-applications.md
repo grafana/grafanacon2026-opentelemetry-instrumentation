@@ -84,6 +84,7 @@ In this exercise you add OpenTelemetry SDK instrumentation to both the Go backen
      environment:
 +      OTEL_SERVICE_NAME: frontend                            # identifies this service in traces and metrics
 +      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318 # where to send telemetry
++      OTEL_SEMCONV_STABILITY_OPT_IN: http                   # use stable HTTP semconv (http.request.method, etc.)
 ```
 
 ---
@@ -169,6 +170,7 @@ Call `setupTelemetry` at startup and add the gorilla/mux HTTP middleware to crea
      environment:
 +      OTEL_SERVICE_NAME: backend                              # identifies this service in traces and metrics
 +      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318 # where to send telemetry
++      OTEL_SEMCONV_STABILITY_OPT_IN: database                 # use stable DB semconv (db.query.summary, etc.)
 ```
 
 ---
