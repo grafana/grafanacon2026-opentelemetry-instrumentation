@@ -17,3 +17,10 @@ make test
 ```
 
 This runs both backend and frontend tests.
+
+After making any changes, run formatting and spell check:
+
+```bash
+make format
+make spell
+```
