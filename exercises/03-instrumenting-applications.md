@@ -177,6 +177,7 @@ Call `setupTelemetry` at startup and add the gorilla/mux HTTP middleware to crea
 ### Step 9 — Add the Grafana dashboard and alerts
 
 ```bash
+# copies only these files from the solution branch — does not switch branches
 git checkout 03-instrumenting-applications -- grafana/dashboards/apm-dashboard.json
 git checkout 03-instrumenting-applications -- grafana/provisioning/alerting/frontend-alerts.yml
 ```

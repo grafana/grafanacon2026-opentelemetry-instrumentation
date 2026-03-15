@@ -87,6 +87,7 @@ discovery:
 A pre-built RED metrics dashboard lives in [grafana/dashboards/red-metrics.json](../grafana/dashboards/red-metrics.json). It is automatically provisioned on startup.
 
 ```bash
+# copies only this file from the solution branch — does not switch branches
 git checkout 02-setup-obi -- grafana/dashboards/red-metrics.json
 ```
 

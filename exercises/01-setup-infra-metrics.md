@@ -141,6 +141,7 @@ processors:
 A pre-built dashboard definition lives in [grafana/dashboards/hostmetrics.json](../grafana/dashboards/hostmetrics.json). It is automatically provisioned on startup (no manual import needed).
 
 ```bash
+# copies only this file from the solution branch — does not switch branches
 git checkout 01-setup-infra-metrics -- grafana/dashboards/hostmetrics.json
 ```
 
