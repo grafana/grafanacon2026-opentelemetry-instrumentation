@@ -22,7 +22,7 @@ In this exercise you add [OBI](https://github.com/open-telemetry/opentelemetry-e
 
 | Service | File                                                                          | What changes                                                                     |
 | ------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| —       | [docker-compose.yml](../docker-compose.yml)                                   | Add the `obi` service; expose port 4318 on the collector                         |
+| —       | [docker-compose.yml](../docker-compose.yml)                                   | Add the `obi` service                         |
 | obi     | [obi/obi-config.yml](../obi/obi-config.yml)                                   | New OBI config — targets the app containers and exports metrics to the collector |
 | —       | [grafana/dashboards/red-metrics.json](../grafana/dashboards/red-metrics.json) | New RED metrics dashboard — request rate, error rate, and latency per service    |
 
@@ -51,15 +51,6 @@ OBI needs to run as a privileged container with `pid: host` so it can observe al
 +      OTEL_EBPF_CONFIG_PATH: /etc/obi/config.yml
 +    depends_on:
 +      - otel-collector
-```
-
-Also expose port 4318 on the `otel-collector` service so OBI can reach it:
-
-```diff
-   otel-collector:
-     ...
-+    ports:
-+      - 4318
 ```
 
 ### Step 2 — Create the OBI config
