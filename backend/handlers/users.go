@@ -10,7 +10,7 @@ import (
 	"github.com/workshop/tapas-backend/middleware"
 )
 
-func ListUsers(db *sql.DB) http.HandlerFunc {
+func ListUsers(db *dbpkg.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		rows, err := db.QueryContext(r.Context(),
 			`SELECT id, username, is_admin, created_at FROM users ORDER BY username`)
@@ -35,7 +35,7 @@ func ListUsers(db *sql.DB) http.HandlerFunc {
 	}
 }
 
-func GetUserByUsername(db *sql.DB) http.HandlerFunc {
+func GetUserByUsername(db *dbpkg.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		username := mux.Vars(r)["username"]
 		var u dbpkg.User
@@ -54,7 +54,7 @@ func GetUserByUsername(db *sql.DB) http.HandlerFunc {
 	}
 }
 
-func CreateUser(db *sql.DB) http.HandlerFunc {
+func CreateUser(db *dbpkg.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
 			Username string `json:"username"`
@@ -76,7 +76,7 @@ func CreateUser(db *sql.DB) http.HandlerFunc {
 	}
 }
 
-func GetFavorites(db *sql.DB) http.HandlerFunc {
+func GetFavorites(db *dbpkg.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		caller := middleware.GetUser(r)
 

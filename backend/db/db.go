@@ -9,7 +9,7 @@ import (
 	"github.com/workshop/tapas-backend/chaos"
 )
 
-func Connect() (*sql.DB, error) {
+func Connect() (*DB, error) {
 	dsn := os.Getenv("DB_URL")
 	if dsn == "" {
 		dsn = "postgres://postgres:postgres@localhost:5432/tapas?sslmode=disable"
@@ -26,5 +26,9 @@ func Connect() (*sql.DB, error) {
 	if chaos.Triggered() {
 		conn.SetMaxOpenConns(1)
 	}
-	return conn, nil
+	db, err := NewDB(conn, dsn)
+	if err != nil {
+		return nil, fmt.Errorf("init db instrumentation: %w", err)
+	}
+	return db, nil
 }

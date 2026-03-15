@@ -6,11 +6,12 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	dbpkg "github.com/workshop/tapas-backend/db"
 )
 
 const maxPhotoSize = 10 << 20 // 10 MB
 
-func UploadPhoto(db *sql.DB) http.HandlerFunc {
+func UploadPhoto(db *dbpkg.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		slug := mux.Vars(r)["id"]
 
@@ -75,7 +76,7 @@ func UploadPhoto(db *sql.DB) http.HandlerFunc {
 	}
 }
 
-func GetPhoto(db *sql.DB) http.HandlerFunc {
+func GetPhoto(db *dbpkg.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		photoID := vars["photo_id"]
@@ -104,7 +105,7 @@ func GetPhoto(db *sql.DB) http.HandlerFunc {
 	}
 }
 
-func DeletePhoto(db *sql.DB) http.HandlerFunc {
+func DeletePhoto(db *dbpkg.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		photoID := vars["photo_id"]

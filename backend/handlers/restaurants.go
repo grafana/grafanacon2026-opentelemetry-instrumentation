@@ -70,7 +70,7 @@ func slugify(name string) string {
 	return strings.Trim(slug, "_")
 }
 
-func ListRestaurants(db *sql.DB) http.HandlerFunc {
+func ListRestaurants(db *dbpkg.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		q := r.URL.Query()
 		var conditions []string
@@ -183,7 +183,7 @@ func ListRestaurants(db *sql.DB) http.HandlerFunc {
 	}
 }
 
-func GetRestaurant(db *sql.DB) http.HandlerFunc {
+func GetRestaurant(db *dbpkg.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		slug := mux.Vars(r)["id"]
 
@@ -243,7 +243,7 @@ type restaurantInput struct {
 	TapasMenu    json.RawMessage `json:"tapas_menu"`
 }
 
-func CreateRestaurant(db *sql.DB) http.HandlerFunc {
+func CreateRestaurant(db *dbpkg.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var inp restaurantInput
 		if err := json.NewDecoder(r.Body).Decode(&inp); err != nil {
@@ -292,7 +292,7 @@ func CreateRestaurant(db *sql.DB) http.HandlerFunc {
 	}
 }
 
-func UpdateRestaurant(db *sql.DB) http.HandlerFunc {
+func UpdateRestaurant(db *dbpkg.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		slug := mux.Vars(r)["id"]
 
@@ -370,7 +370,7 @@ func UpdateRestaurant(db *sql.DB) http.HandlerFunc {
 	}
 }
 
-func DeleteRestaurant(db *sql.DB) http.HandlerFunc {
+func DeleteRestaurant(db *dbpkg.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		slug := mux.Vars(r)["id"]
 		res, err := db.ExecContext(r.Context(), `DELETE FROM restaurants WHERE slug = $1`, slug)

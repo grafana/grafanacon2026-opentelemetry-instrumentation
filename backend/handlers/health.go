@@ -1,11 +1,12 @@
 package handlers
 
 import (
-	"database/sql"
 	"net/http"
+
+	dbpkg "github.com/workshop/tapas-backend/db"
 )
 
-func Health(db *sql.DB) http.HandlerFunc {
+func Health(db *dbpkg.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		dbStatus := "ok"
 		if err := db.PingContext(r.Context()); err != nil {

@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"context"
-	"database/sql"
 	"net/http"
 
 	dbpkg "github.com/workshop/tapas-backend/db"
@@ -14,7 +13,7 @@ const UserKey contextKey = "user"
 
 // LoadUser reads the user-id header and attaches the user to the request context.
 // If the header is absent or the user is not found, the request proceeds without a user.
-func LoadUser(db *sql.DB) func(http.Handler) http.Handler {
+func LoadUser(db *dbpkg.DB) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			userID := r.Header.Get("user-id")

@@ -20,7 +20,7 @@ import (
 // ── Test setup ────────────────────────────────────────────────────────────────
 
 var (
-	testDB     *sql.DB
+	testDB     *dbpkg.DB
 	testServer *httptest.Server
 	adminID    = "a1f3e2d4"
 	aliceID    = "b2c4d5e6"
@@ -29,17 +29,21 @@ var (
 func TestMain(m *testing.M) {
 	dsn := os.Getenv("TEST_DB_URL")
 	if dsn == "" {
-		dsn = "postgres://postgres:postgres@localhost:5432/tapas?sslmode=disable"
+		dsn = "postgres://postgres:postgres@localhost:5433/tapas?sslmode=disable"
 	}
 
-	var err error
-	testDB, err = sql.Open("postgres", dsn)
+	sqlDB, err := sql.Open("postgres", dsn)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "open db: %v\n", err)
 		os.Exit(1)
 	}
-	if err := testDB.Ping(); err != nil {
+	if err := sqlDB.Ping(); err != nil {
 		fmt.Fprintf(os.Stderr, "ping db: %v\n", err)
+		os.Exit(1)
+	}
+	testDB, err = dbpkg.NewDB(sqlDB, dsn)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "init db instrumentation: %v\n", err)
 		os.Exit(1)
 	}
 

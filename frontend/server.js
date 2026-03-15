@@ -10,6 +10,7 @@ const {
   OpenTelemetryTransportV3,
 } = require("@opentelemetry/winston-transport");
 const { trace } = require("@opentelemetry/api");
+const { instrumentLogin, loginDuration } = require("./otel-auth");
 
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || "info",
@@ -309,6 +310,7 @@ app.get("/login", (req, res) => {
 
 // Login — POST (look up by username, set cookie)
 app.post("/login", async (req, res) => {
+  const start = Date.now();
   const { username } = req.body;
   if (!username) {
     return renderPage(res, "login", { error: "Please enter your username." });
@@ -318,21 +320,36 @@ app.post("/login", async (req, res) => {
       `/api/users/by-username/${encodeURIComponent(username)}`,
     );
     if (r.status === 404) {
+      loginDuration.record((Date.now() - start) / 1000, {
+        "auth.provider.name": "local",
+        "error.type": "user_not_found",
+      });
       return renderPage(res, "login", { error: "User not found." });
     }
     if (!r.ok) {
+      loginDuration.record((Date.now() - start) / 1000, {
+        "auth.provider.name": "local",
+        "error.type": "http_error",
+      });
       return renderPage(res, "login", {
         error: "Login failed. Please try again.",
       });
     }
     const user = await r.json();
+    loginDuration.record((Date.now() - start) / 1000, {
+      "auth.provider.name": "local",
+    });
     const encoded = encodeURIComponent(JSON.stringify(user));
     res.setHeader(
       "Set-Cookie",
       `tapas_user=${encoded}; Path=/; HttpOnly; SameSite=Lax`,
     );
     res.redirect("/");
-  } catch {
+  } catch (err) {
+    loginDuration.record((Date.now() - start) / 1000, {
+      "auth.provider.name": "local",
+      "error.type": err.constructor?.name ?? "_OTHER",
+    });
     renderPage(res, "login", { error: "Could not reach the backend." });
   }
 });
@@ -356,29 +373,37 @@ app.get("/auth/acme/consent", (req, res) => {
 app.post("/auth/acme/callback", async (req, res) => {
   const { username, state } = req.body;
   try {
-    // Validate OAuth state to prevent CSRF
-    if (!state || state !== req.cookies.oauth_state) {
+    const result = await instrumentLogin("acme", async () => {
+      // Validate OAuth state to prevent CSRF
+      if (!state || state !== req.cookies.oauth_state) {
+        return { outcome: "state_mismatch" };
+      }
+      res.setHeader("Set-Cookie", "oauth_state=; Path=/; Max-Age=0");
+
+      // Simulate token exchange round-trip to identity provider (80–200 ms)
+      await new Promise((r) => setTimeout(r, 80 + Math.random() * 120));
+
+      // Look up existing user or create one on first OAuth sign-in
+      const r = await backendGet(
+        `/api/users/by-username/${encodeURIComponent(username)}`,
+      );
+      if (r.status === 404) {
+        const created = await backendPost("/api/users", { username });
+        return {
+          outcome: "success",
+          isNewUser: true,
+          user: await created.json(),
+        };
+      }
+      return { outcome: "success", isNewUser: false, user: await r.json() };
+    });
+
+    if (result.outcome !== "success") {
       return renderPage(res, "login", {
         error: "Login failed. Please try again.",
       });
     }
-    res.setHeader("Set-Cookie", "oauth_state=; Path=/; Max-Age=0");
-
-    // Simulate token exchange round-trip to identity provider (80–200 ms)
-    await new Promise((r) => setTimeout(r, 80 + Math.random() * 120));
-
-    // Look up existing user or create one on first OAuth sign-in
-    const r = await backendGet(
-      `/api/users/by-username/${encodeURIComponent(username)}`,
-    );
-    let user;
-    if (r.status === 404) {
-      const created = await backendPost("/api/users", { username });
-      user = await created.json();
-    } else {
-      user = await r.json();
-    }
-    const encoded = encodeURIComponent(JSON.stringify(user));
+    const encoded = encodeURIComponent(JSON.stringify(result.user));
     res.setHeader(
       "Set-Cookie",
       `tapas_user=${encoded}; Path=/; HttpOnly; SameSite=Lax`,

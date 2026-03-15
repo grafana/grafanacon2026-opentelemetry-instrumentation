@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	dbpkg "github.com/workshop/tapas-backend/db"
 	"github.com/workshop/tapas-backend/middleware"
 )
 
@@ -13,7 +14,7 @@ type ratingInput struct {
 	Rating int `json:"rating"`
 }
 
-func SubmitRating(db *sql.DB) http.HandlerFunc {
+func SubmitRating(db *dbpkg.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		u := middleware.GetUser(r)
 		slug := mux.Vars(r)["id"]
@@ -74,7 +75,7 @@ func SubmitRating(db *sql.DB) http.HandlerFunc {
 	}
 }
 
-func ListRatings(db *sql.DB) http.HandlerFunc {
+func ListRatings(db *dbpkg.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		slug := mux.Vars(r)["id"]
 
