@@ -42,6 +42,9 @@ The `hostmetrics` receiver reads from the host filesystem and `docker_stats` rea
 +    - /:/hostfs:ro
 ```
 
+> [!NOTE]
+> **macOS:** Docker Desktop runs containers inside a Linux VM, so `/` here is the VM's root filesystem — not your Mac's. `hostmetrics` will report the VM's CPU, memory, and disk rather than your laptop's. The dashboard will populate and look correct, but the numbers reflect the VM. This is expected behaviour on macOS.
+
 ---
 
 ## Part 2 — Configure the collector
