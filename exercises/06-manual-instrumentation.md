@@ -78,7 +78,7 @@ func (db *DB) startSpan(ctx context.Context, query string) (context.Context, tra
 
 ```go
 func endSpan(ctx context.Context, span trace.Span, err error) {
-    if err != nil {
+    if err != nil && !errors.Is(err, sql.ErrNoRows) {
         slog.ErrorContext(ctx, "database error",
             slog.String("exception.type", fmt.Sprintf("%T", err)),
             slog.String("exception.message", err.Error()),
@@ -135,7 +135,7 @@ const meter = metrics.getMeter("tapas-auth", undefined, {
 
 const loginDuration = meter.createHistogram("auth.client.login.duration", {
   description: "Duration of login attempts",
-  unit: "ms",
+  unit: "s",
 });
 
 const newUserCounter = meter.createCounter("auth.client.new_users", {
@@ -149,7 +149,6 @@ const newUserCounter = meter.createCounter("auth.client.new_users", {
 async function instrumentLogin(provider, fn) {
   const start = Date.now();
   return tracer.startActiveSpan('login', async (span) => {
-    span.setAttribute('auth.provider.name', provider);
     // ...
     try {
       const result = await fn();
@@ -158,11 +157,11 @@ async function instrumentLogin(provider, fn) {
         span.setStatus({ code: SpanStatusCode.ERROR });
       }
       // ...
-      loginDuration.record(Date.now() - start, { 'auth.provider.name': provider, ... });
+      loginDuration.record((Date.now() - start) / 1000, { 'auth.provider.name': provider, ... });
       return result;
     } catch (err) {
       span.setStatus({ code: SpanStatusCode.ERROR });
-      loginDuration.record(Date.now() - start, { ..., 'error.type': err.constructor?.name });
+      loginDuration.record((Date.now() - start) / 1000, { ..., 'error.type': err.constructor?.name });
       throw err;
     } finally {
       span.end();
@@ -198,9 +197,8 @@ or trace backend required.
 **Backend** — [tests/backend/instrumentation_test.go](../tests/backend/instrumentation_test.go)
 uses an in-memory span exporter against a real database.
 
-**Frontend** — [tests/frontend/otel-auth.test.js](../tests/frontend/otel-auth.test.js)
-uses in-memory span and metric exporters. Providers are registered before importing
-`otel-auth.js`, because `getTracer`/`getMeter` are called at module load time.
+**Frontend** — [tests/frontend/server.test.js](../tests/frontend/server.test.js)
+uses in-memory span and metric exporters.
 
 ```bash
 make test
