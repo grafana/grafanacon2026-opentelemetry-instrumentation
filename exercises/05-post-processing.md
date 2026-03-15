@@ -32,7 +32,7 @@ Use OTTL transform processors in the collector to anonymize sensitive span attri
 The [transform processor](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.147.0/processor/transformprocessor) rewrites attributes using [OTTL](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.147.0/pkg/ottl) expressions without touching application code.
 
 > [!NOTE]
-> Exercise 04 also sets `enduser.pseudo.id` — the internal numeric DB ID. It is already opaque, which is exactly what hashing `enduser.id` achieves. Both are still [linkable PII](https://opentelemetry.io/docs/specs/semconv/attributes-registry/enduser/). `enduser.pseudo.id` alone would have been sufficient — `enduser.id` was unnecessary to capture. The hashing technique below applies to any other sensitive string attribute.
+> `enduser.id` is personal data. The hashing technique below applies to any sensitive string attribute you need to retain but anonymize — useful when you cannot change the application code.
 
 Replace `enduser.id` with the first 8 hex characters of its SHA-256 digest.
 

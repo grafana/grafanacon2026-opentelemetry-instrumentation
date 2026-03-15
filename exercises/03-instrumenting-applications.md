@@ -77,6 +77,8 @@ In this exercise you add OpenTelemetry SDK instrumentation to both the Go backen
 +#                         ^ loads the OTel SDK and auto-instruments HTTP, DNS, etc. before app code runs
 ```
 
+`--require` executes the module before any other code loads. This is how it can monkey-patch built-in modules like `http` — the patches are in place before the app imports anything.
+
 ### Step 4 — Set env vars in [docker-compose.yml](../docker-compose.yml)
 
 ```diff
@@ -172,6 +174,8 @@ Call `setupTelemetry` at startup and add the gorilla/mux HTTP middleware to crea
 +      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318 # where to send telemetry
 +      OTEL_SEMCONV_STABILITY_OPT_IN: database                 # use stable DB semconv (db.query.summary, etc.)
 ```
+
+The code in this excercise also wraps the database connection with [`otelsql`](https://github.com/XSAM/otelsql), a third-party driver wrapper that automatically creates spans for every SQL query. `OTEL_SEMCONV_STABILITY_OPT_IN: database` tells `otelsql` to emit stable attribute names (`db.query.summary`, `db.query.text`) instead of the deprecated `db.statement`. [Exercise 06](06-manual-instrumentation.md) replaces `otelsql` with a hand-written wrapper that implements semantic conventions more precisely.
 
 ---
 

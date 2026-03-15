@@ -2,6 +2,19 @@
 
 A demo application for learning OpenTelemetry instrumentation. It helps users discover tapas restaurants in Barcelona.
 
+## Before the workshop
+
+Pull all Docker images at home before the session to avoid slow startup on conference WiFi:
+
+```bash
+git clone https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation
+cd grafanacon2026-opentelemetry-instrumentation
+docker compose pull
+docker compose up --build
+```
+
+The first build downloads images and compiles both services — it can take several minutes. Once images are cached, rebuilds are fast. See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) if you hit issues.
+
 ## Prerequisites
 
 - Git

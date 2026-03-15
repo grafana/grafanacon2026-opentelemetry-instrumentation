@@ -91,6 +91,9 @@ In [backend/telemetry.go](../backend/telemetry.go):
 
 `ParentBased(AlwaysSample())` is the standard default: honour the sampling decision from an incoming `traceparent` header, sample everything without a parent. `dropHealthSampler` wraps it and intercepts health-check spans first.
 
+> [!NOTE]
+> Sampling happens before the span is created, so only attributes passed as **start options** (via `trace.WithAttributes` at span creation) are visible in `SamplingParameters.Attributes`. `otelmux` sets `url.path` as a start attribute, which is why this sampler can read it. For attributes added after span creation, use a `SpanProcessor` instead.
+
 ---
 
 ## Part 2 — Disable noisy auto-instrumentation (Node.js frontend)
