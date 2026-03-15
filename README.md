@@ -2,6 +2,29 @@
 
 A demo application for learning OpenTelemetry instrumentation. It helps users discover tapas restaurants in Barcelona.
 
+## Table of Contents
+
+- [Before the workshop](#before-the-workshop)
+- [Prerequisites](#prerequisites)
+- [Getting Started](#getting-started)
+- [Workshop Structure](#workshop-structure)
+- [Running the Application](#running-the-application)
+- [Observability](#observability)
+  - [OTel Collector](#otel-collector)
+  - [Grafana Dashboards](#grafana-dashboards)
+- [Technical Details](#technical-details)
+  - [Project Structure](#project-structure)
+  - [Running Tests](#running-tests)
+  - [Load Generation](#load-generation)
+  - [API Endpoints](#api-endpoints)
+  - [Auth](#auth)
+  - [Chaos Mode](#chaos-mode)
+- [Useful Resources](#useful-resources)
+  - [OpenTelemetry Fundamentals](#opentelemetry-fundamentals)
+  - [Instrumentation & Components](#instrumentation--components)
+  - [Customization & Processing](#customization--processing)
+  - [Language-specific Guides](#language-specific-guides-used-in-this-workshop)
+
 ## Before the workshop
 
 Pull all Docker images at home before the session to avoid slow startup on conference WiFi:
@@ -77,7 +100,9 @@ Open Grafana at `http://localhost:3000` (no login required).
 
 We'll add dashboards throughout the workshop.
 
-## Project Structure
+## Technical Details
+
+### Project Structure
 
 ```text
 .
@@ -90,12 +115,9 @@ We'll add dashboards throughout the workshop.
 └── docker-compose.yml
 ```
 
-## Running Tests
+### Running Tests
 
-### Test prerequisites
-
-- Go
-- Node.js
+Prerequisites: Go and Node.js
 
 ```bash
 make test
@@ -103,7 +125,7 @@ make test
 
 This starts the database in Docker, runs the Go backend tests against it, and runs the Node.js frontend tests (using a mock backend).
 
-## Load Generation
+### Load Generation
 
 ```bash
 make load
@@ -111,7 +133,7 @@ make load
 
 Runs a [load script](load-test.js) that generates traffic against the running application.
 
-## API Endpoints
+### API Endpoints
 
 | Method | Path                                    | Description               |
 | ------ | --------------------------------------- | ------------------------- |
@@ -128,7 +150,7 @@ Runs a [load script](load-test.js) that generates traffic against the running ap
 | GET    | `/api/users`                            | List users (admin)        |
 | GET    | `/api/users/:id/favorites`              | Get user favorites (auth) |
 
-## Auth
+### Auth
 
 Two login methods are available:
 
@@ -144,6 +166,36 @@ Pre-seeded accounts:
 | `bob`    | user  |
 | `carla`  | user  |
 
-## Chaos Mode
+### Chaos Mode
 
 Set `CHAOS_MODE=true` in the `.env` file to enable intentional failures across both services: the backend will return a 500 on restaurant detail pages (bad SQL query) and fire N+1 photo queries on list pages through a single DB connection; the frontend will block the Node.js event loop on every search request, causing requests to queue up under concurrent load.
+
+## Useful Resources
+
+### OpenTelemetry Fundamentals
+
+- **OpenTelemetry Official Site**: [opentelemetry.io](https://opentelemetry.io)
+- **OTel Specifications**: [opentelemetry.io/docs/specs/otel](https://opentelemetry.io/docs/specs/otel/)
+- **Semantic Conventions**: [opentelemetry.io/docs/specs/semconv](https://opentelemetry.io/docs/specs/semconv/)
+- **W3C Trace Context**: [w3.org/TR/trace-context-2](https://www.w3.org/TR/trace-context-2/)
+- **OTLP Protobuf Definitions**: [github.com/open-telemetry/opentelemetry-proto](https://github.com/open-telemetry/opentelemetry-proto)
+
+### Instrumentation & Components
+
+- **Instrumentation Concepts**: [opentelemetry.io/docs/concepts/instrumentation](https://opentelemetry.io/docs/concepts/instrumentation/)
+- **OTel Collector Contrib**: [github.com/open-telemetry/opentelemetry-collector-contrib](https://github.com/open-telemetry/opentelemetry-collector-contrib)
+- **eBPF Instrumentation (OBI)**: [github.com/open-telemetry/opentelemetry-ebpf-instrumentation](https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation)
+- **Ecosystem Explorer**: [explorer.opentelemetry.io](https://explorer.opentelemetry.io)
+- **OpenTelemetry Registry**: [opentelemetry.io/ecosystem/registry](https://opentelemetry.io/ecosystem/registry/)
+
+### Customization & Processing
+
+- **Transforming Telemetry (Collector)**: [opentelemetry.io/docs/collector/transforming-telemetry](https://opentelemetry.io/docs/collector/transforming-telemetry/)
+- **OTTL Playground**: [ottl.run](https://ottl.run/)
+- **Tail-based Sampling Concepts**: [opentelemetry.io/docs/concepts/sampling](https://opentelemetry.io/docs/concepts/sampling/#tail-sampling)
+
+### Language-specific Guides (used in this workshop)
+
+- **Go**: [opentelemetry.io/docs/languages/go](https://opentelemetry.io/docs/languages/go/)
+- **JavaScript (Node.js zero-code)**: [opentelemetry.io/docs/zero-code/js](https://opentelemetry.io/docs/zero-code/js/)
+- **JavaScript sampling**: [opentelemetry.io/docs/languages/js/sampling](https://opentelemetry.io/docs/languages/js/sampling/)
