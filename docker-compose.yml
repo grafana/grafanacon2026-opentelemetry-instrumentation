@@ -14,7 +14,7 @@ services:
       - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d tapas"]
-      interval: 5s
+      interval: 60s
       timeout: 5s
       retries: 10
 
@@ -34,7 +34,7 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8080/api/health || exit 1"]
-      interval: 5s
+      interval: 60s
       timeout: 5s
       retries: 10
 
@@ -54,7 +54,7 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health || exit 1"]
-      interval: 5s
+      interval: 60s
       timeout: 5s
       retries: 10
 

@@ -14,11 +14,12 @@ In this exercise you add OpenTelemetry SDK instrumentation to both the Go backen
   - [Step 3 — Load auto-instrumentation](#step-3--load-auto-instrumentation-in-frontenddockerfile)
   - [Step 4 — Set env vars](#step-4--set-env-vars-in-docker-composeyml)
 - [Part 2 — Backend (Go)](#part-2--backend-go)
-  - [Step 5 — Create telemetry.go](#step-5--create-backendtelemetrygo)
-  - [Step 6 — Update main.go](#step-6--update-backendmaingo)
-  - [Step 7 — Set env vars](#step-7--set-env-vars-in-docker-composeyml)
+  - [Step 5 — Install dependencies](#step-5--install-dependencies)
+  - [Step 6 — Create telemetry.go](#step-6--create-backendtelemetrygo)
+  - [Step 7 — Update main.go](#step-7--update-backendmaingo)
+  - [Step 8 — Set env vars](#step-8--set-env-vars-in-docker-composeyml)
 - [Part 3 — Add the Grafana dashboard and alerts](#part-3--add-the-grafana-dashboard-and-alerts)
-  - [Step 8 — Add the Grafana dashboard and alerts](#step-8--add-the-grafana-dashboard-and-alerts)
+  - [Step 9 — Add the Grafana dashboard and alerts](#step-9--add-the-grafana-dashboard-and-alerts)
 - [Verify](#verify)
 - [Catch up](#catch-up)
 
@@ -87,7 +88,23 @@ In this exercise you add OpenTelemetry SDK instrumentation to both the Go backen
 
 ## Part 2 — Backend (Go)
 
-### Step 5 — Create [backend/telemetry.go](../backend/telemetry.go)
+### Step 5 — Install dependencies
+
+```bash
+cd backend
+go get go.opentelemetry.io/otel \
+       go.opentelemetry.io/otel/sdk \
+       go.opentelemetry.io/otel/sdk/log \
+       go.opentelemetry.io/otel/sdk/metric \
+       go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp \
+       go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp \
+       go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp \
+       go.opentelemetry.io/contrib/bridges/otelslog \
+       go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux
+go mod tidy
+```
+
+### Step 6 — Create [backend/telemetry.go](../backend/telemetry.go)
 
 Set up the three OTel SDK providers and replace the default `slog` logger with an OTel bridge. All exporters use OTLP HTTP and pick up `OTEL_EXPORTER_OTLP_ENDPOINT` from the environment.
 
@@ -123,7 +140,7 @@ func setupTelemetry(ctx context.Context) (func(context.Context) error, error) {
 }
 ```
 
-### Step 6 — Update [backend/main.go](../backend/main.go)
+### Step 7 — Update [backend/main.go](../backend/main.go)
 
 Call `setupTelemetry` at startup and add the gorilla/mux HTTP middleware to create a span for every inbound request:
 
@@ -142,7 +159,7 @@ Call `setupTelemetry` at startup and add the gorilla/mux HTTP middleware to crea
 +	r.Use(otelmux.Middleware("backend"))
 ```
 
-### Step 7 — Set env vars in [docker-compose.yml](../docker-compose.yml)
+### Step 8 — Set env vars in [docker-compose.yml](../docker-compose.yml)
 
 ```diff
    backend:
@@ -155,7 +172,7 @@ Call `setupTelemetry` at startup and add the gorilla/mux HTTP middleware to crea
 
 ## Part 3 — Add the Grafana dashboard and alerts
 
-### Step 8 — Add the Grafana dashboard and alerts
+### Step 9 — Add the Grafana dashboard and alerts
 
 ```bash
 git checkout 03-instrumenting-applications -- grafana/dashboards/apm-dashboard.json
@@ -176,11 +193,6 @@ Also mount the alerting provisioning directory in [docker-compose.yml](../docker
 
 ```bash
 docker compose up --build
-```
-
-Generate some traffic:
-
-```bash
 make load
 ```
 

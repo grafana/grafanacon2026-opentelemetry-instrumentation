@@ -97,7 +97,7 @@ docker compose up --build
 make load
 ```
 
-Open <http://localhost:3000/d/e0701985-a623-4e62-9fae-f5094244d065/red-metrics>. You should see request rate, error rate, and P95 latency panels for the `backend` and `frontend` services.
+Open <http://localhost:3000/d/red-metrics>. You should see request rate, error rate, and P95 latency panels for the `backend` and `frontend` services.
 
 ---
 

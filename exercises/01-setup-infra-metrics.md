@@ -148,7 +148,7 @@ docker compose up --build
 make load
 ```
 
-Open <http://localhost:3000/d/hostmetrics-simple/host-metrics>. You should see CPU, memory, disk, and network panels populated within a few seconds.
+Open <http://localhost:3000/d/hostmetrics>. You should see CPU, memory, disk, and network panels populated within a few seconds.
 
 ---
 

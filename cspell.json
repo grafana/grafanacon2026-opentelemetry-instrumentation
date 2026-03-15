@@ -16,8 +16,11 @@
   "words": [
     "otelcol",
     "otlphttp",
+    "otlptrace",
     "otlptracehttp",
+    "otlpmetric",
     "otlpmetrichttp",
+    "otlplog",
     "otlploghttp",
     "otelslog",
     "otelsql",

@@ -117,7 +117,12 @@ Runs a [load script](load-test.js) that generates traffic against the running ap
 
 ## Auth
 
-Log in via the UI with just a username — no password required. Pre-seeded accounts:
+Two login methods are available:
+
+- **Username login** — enter any pre-seeded username, no password required.
+- **Acme SSO** — a simulated OAuth flow with a fake consent page.
+
+Pre-seeded accounts:
 
 | Username | Role  |
 | -------- | ----- |
