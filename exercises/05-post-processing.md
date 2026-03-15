@@ -1,5 +1,7 @@
 # Exercise 05 — Post-processing telemetry
 
+[← Exercise 04](04-customizing-instrumentations.md) | [Exercise 06 →](06-manual-instrumentation.md)
+
 Use OTTL transform processors in the collector to anonymize sensitive span attributes and normalize log fields to semantic conventions.
 
 ## Contents
@@ -144,3 +146,7 @@ Request logs should carry `http.request.method`, `url.path`, and `http.response.
 ```bash
 git checkout 05-post-processing
 ```
+
+---
+
+[← Exercise 04](04-customizing-instrumentations.md) | [Exercise 06 →](06-manual-instrumentation.md)

@@ -1,5 +1,7 @@
 # Exercise 03 — Instrumenting Applications
 
+[← Exercise 02](02-setup-obi.md) | [Exercise 04 →](04-customizing-instrumentations.md)
+
 In this exercise you add OpenTelemetry SDK instrumentation to both the Go backend and the Node.js frontend. Both services will emit traces, metrics, and logs via OTLP to the collector.
 
 - **Frontend (Node.js)** uses [zero-code auto-instrumentation](https://opentelemetry.io/docs/zero-code/js/) — no source changes are needed for traces and metrics. A single `--require` flag at startup loads the OTel SDK and automatically instruments HTTP, DNS, and other built-ins.
@@ -18,7 +20,7 @@ In this exercise you add OpenTelemetry SDK instrumentation to both the Go backen
   - [Step 6 — Create telemetry.go](#step-6--create-backendtelemetrygo)
   - [Step 7 — Update main.go](#step-7--update-backendmaingo)
   - [Step 8 — Set env vars](#step-8--set-env-vars-in-docker-composeyml)
-- [Part 3 — Add the Grafana dashboard and alerts](#part-3--add-the-grafana-dashboard-and-alerts)
+- [Part 3 — Grafana](#part-3--add-the-grafana-dashboard-and-alerts)
   - [Step 9 — Add the Grafana dashboard and alerts](#step-9--add-the-grafana-dashboard-and-alerts)
 - [Verify](#verify)
 - [Catch up](#catch-up)
@@ -205,3 +207,7 @@ Open <http://localhost:3000/d/apm-dashboard/apm-dashboard>. You should see trace
 ```bash
 git checkout 03-instrumenting-applications
 ```
+
+---
+
+[← Exercise 02](02-setup-obi.md) | [Exercise 04 →](04-customizing-instrumentations.md)

@@ -1,5 +1,7 @@
 # Exercise 06 — Manual Instrumentation
 
+[← Exercise 05](05-post-processing.md)
+
 In this exercise you write OpenTelemetry instrumentation by hand — replacing a third-party
 database driver wrapper on the backend and adding a login instrumentation shell on the frontend.
 
@@ -232,7 +234,7 @@ an error log with `exception.type` and `exception.message` correlated to the fai
 
 ### Frontend — login spans
 
-Open the app at <http://localhost:3000>, log in via **Acme SSO** (OAuth), and then via the
+Open the app at <http://localhost:8080>, log in via **Acme SSO** (OAuth), and then via the
 plain username form. In Grafana, find a trace for the frontend service and locate the
 `login` span. Verify:
 
@@ -254,3 +256,7 @@ should appear on the histogram.
 ```bash
 git checkout 06-manual-instrumentation
 ```
+
+---
+
+[← Exercise 05](05-post-processing.md)

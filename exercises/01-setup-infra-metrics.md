@@ -1,5 +1,7 @@
 # Exercise 01 — Setup Infrastructure Metrics
 
+[Exercise 02 →](02-setup-obi.md)
+
 In this exercise you configure the OpenTelemetry Collector to scrape infrastructure metrics from the host and Docker and add a Grafana dashboard to visualize them.
 
 ## Contents
@@ -159,3 +161,7 @@ To skip ahead to the completed state of this exercise, check out the solution br
 ```bash
 git checkout 01-setup-infra-metrics
 ```
+
+---
+
+[Exercise 02 →](02-setup-obi.md)
