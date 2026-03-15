@@ -119,7 +119,9 @@ docker compose up --build
 make load  # runs continuously — keep it running in a separate terminal, Ctrl+C to stop
 ```
 
-**Part 1** — log in as `alice`, browse the app, then open Grafana → **Explore** → **Tempo**:
+**Part 1** — log in as `alice`, browse the app, then:
+
+[Open in Grafana (Tempo)](http://localhost:3000/explore?schemaVersion=1&orgId=1&panes=%7B%22abc%22%3A%7B%22datasource%22%3A%22tempo%22%2C%22queries%22%3A%5B%7B%22refId%22%3A%22A%22%2C%22queryType%22%3A%22traceql%22%2C%22query%22%3A%22%7B%20resource.service.name%20%3D%20%5C%22frontend%5C%22%20%26%26%20span.enduser.id%20%21%3D%20nil%20%7D%22%7D%5D%2C%22range%22%3A%7B%22from%22%3A%22now-1h%22%2C%22to%22%3A%22now%22%7D%7D%7D)
 
 ```traceql
 { resource.service.name = "frontend" && span.enduser.id != nil }
@@ -131,7 +133,7 @@ make load  # runs continuously — keep it running in a separate terminal, Ctrl+
 SHA-256("alice") → 2bd806c9...  (first 8 chars: 2bd806c9)
 ```
 
-**Part 2** — open Grafana → Explore → Loki:
+**Part 2** — [Open in Grafana (Loki)](http://localhost:3000/explore?schemaVersion=1&orgId=1&panes=%7B%22abc%22%3A%7B%22datasource%22%3A%22loki%22%2C%22queries%22%3A%5B%7B%22refId%22%3A%22A%22%2C%22queryType%22%3A%22range%22%2C%22expr%22%3A%22%7Bservice_name%3D~%5C%22frontend%7Cbackend%5C%22%7D%20%7C%20http_request_method%20%21%3D%20%5C%22%5C%22%22%7D%5D%2C%22range%22%3A%7B%22from%22%3A%22now-1h%22%2C%22to%22%3A%22now%22%7D%7D%7D):
 
 ```logql
 {service_name=~"frontend|backend"} | http_request_method != ""

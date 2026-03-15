@@ -208,9 +208,11 @@ docker compose up --build
 make load  # runs continuously — keep it running in a separate terminal, Ctrl+C to stop
 ```
 
-Run the TraceQL queries below in Grafana → **Explore** (compass icon in the left sidebar) → select the **Tempo** datasource → paste the query.
+Run the TraceQL queries below — click each link to open Grafana Explore with the query pre-loaded, or paste the query manually into Grafana → **Explore** → **Tempo**.
 
 **Parts 1 & 4 — health-check spans dropped** — should return no results:
+
+[Open in Grafana](http://localhost:3000/explore?schemaVersion=1&orgId=1&panes=%7B%22abc%22%3A%7B%22datasource%22%3A%22tempo%22%2C%22queries%22%3A%5B%7B%22refId%22%3A%22A%22%2C%22queryType%22%3A%22traceql%22%2C%22query%22%3A%22%7B%20kind%20%3D%20server%20%26%26%20span.url.path%20%3D~%20%5C%22.%2Ahealth%5C%22%20%7D%22%7D%5D%2C%22range%22%3A%7B%22from%22%3A%22now-1h%22%2C%22to%22%3A%22now%22%7D%7D%7D)
 
 ```traceql
 { kind = server && span.url.path =~ ".*health" }
@@ -220,17 +222,23 @@ Run the TraceQL queries below in Grafana → **Explore** (compass icon in the le
 
 **Part 2 — `net` spans gone** — should return no results:
 
+[Open in Grafana](http://localhost:3000/explore?schemaVersion=1&orgId=1&panes=%7B%22abc%22%3A%7B%22datasource%22%3A%22tempo%22%2C%22queries%22%3A%5B%7B%22refId%22%3A%22A%22%2C%22queryType%22%3A%22traceql%22%2C%22query%22%3A%22%7B%20resource.service.name%20%3D%20%5C%22frontend%5C%22%20%26%26%20name%20%3D%20%5C%22tcp.connect%5C%22%20%7D%22%7D%5D%2C%22range%22%3A%7B%22from%22%3A%22now-1h%22%2C%22to%22%3A%22now%22%7D%7D%7D)
+
 ```traceql
 { resource.service.name = "frontend" && name = "tcp.connect" }
 ```
 
 **Part 3 — user identity on spans** — log in as any user (e.g. `alice`), then:
 
+[Open in Grafana](http://localhost:3000/explore?schemaVersion=1&orgId=1&panes=%7B%22abc%22%3A%7B%22datasource%22%3A%22tempo%22%2C%22queries%22%3A%5B%7B%22refId%22%3A%22A%22%2C%22queryType%22%3A%22traceql%22%2C%22query%22%3A%22%7B%20resource.service.name%20%3D%20%5C%22frontend%5C%22%20%26%26%20kind%20%3D%20server%20%26%26%20span.enduser.id%20%21%3D%20nil%20%7D%22%7D%5D%2C%22range%22%3A%7B%22from%22%3A%22now-1h%22%2C%22to%22%3A%22now%22%7D%7D%7D)
+
 ```traceql
 { resource.service.name = "frontend" && kind = server && span.enduser.id != nil }
 ```
 
 **Part 4 — static file spans dropped** — should return no results:
+
+[Open in Grafana](http://localhost:3000/explore?schemaVersion=1&orgId=1&panes=%7B%22abc%22%3A%7B%22datasource%22%3A%22tempo%22%2C%22queries%22%3A%5B%7B%22refId%22%3A%22A%22%2C%22queryType%22%3A%22traceql%22%2C%22query%22%3A%22%7B%20resource.service.name%20%3D%20%5C%22frontend%5C%22%20%26%26%20kind%20%3D%20server%20%26%26%20span.url.path%20%3D~%20%5C%22.%2A%28css%7Cjs%7Cico%7Cpng%29%5C%22%20%7D%22%7D%5D%2C%22range%22%3A%7B%22from%22%3A%22now-1h%22%2C%22to%22%3A%22now%22%7D%7D%7D)
 
 ```traceql
 { resource.service.name = "frontend" && kind = server && span.url.path =~ ".*(css|js|ico|png)" }
