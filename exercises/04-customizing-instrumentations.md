@@ -1,6 +1,6 @@
 # Exercise 04 — Customizing Instrumentations
 
-[← Exercise 03](03-instrumenting-applications.md) | [Exercise 05 →](05-post-processing.md)
+[← Exercise 03](03-instrumenting-applications.md) | [Exercise 05 →](05-processing.md)
 
 Drop noisy spans with a custom sampler, suppress instrumentation modules, enrich spans with application context, and filter at the collector when you can't touch application code.
 
@@ -254,4 +254,4 @@ git checkout 04-customizing-instrumentations
 
 ---
 
-[← Exercise 03](03-instrumenting-applications.md) | [Exercise 05 →](05-post-processing.md)
+[← Exercise 03](03-instrumenting-applications.md) | [Exercise 05 →](05-processing.md)

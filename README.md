@@ -72,7 +72,7 @@ The workshop is divided into sections, each building on the previous one. Every 
 | [02 — Setup eBPF instrumentation](exercises/02-setup-obi.md)                                        | `02-setup-obi`                    |
 | [03 — Instrumenting applications](exercises/03-instrumenting-applications.md)                       | `03-instrumenting-applications`   |
 | [04 — Customizing instrumentations](exercises/04-customizing-instrumentations.md)                   | `04-customizing-instrumentations` |
-| [05 — Post-processing telemetry](exercises/05-post-processing.md)                                   | `05-post-processing`              |
+| [05 — Processing telemetry](exercises/05-processing.md)                                             | `05-processing`                   |
 | [06 — Manual database instrumentation](exercises/06-manual-instrumentation.md)                      | `06-manual-instrumentation`       |
 
 ## Running the Application

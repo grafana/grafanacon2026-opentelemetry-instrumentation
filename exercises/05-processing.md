@@ -1,4 +1,4 @@
-# Exercise 05 — Post-processing telemetry
+# Exercise 05 — Processing telemetry
 
 [← Exercise 04](04-customizing-instrumentations.md) | [Exercise 06 →](06-manual-instrumentation.md)
 
@@ -146,7 +146,7 @@ Request logs should carry `http.request.method`, `url.path`, and `http.response.
 ## Catch up
 
 ```bash
-git checkout 05-post-processing
+git checkout 05-processing
 ```
 
 ---

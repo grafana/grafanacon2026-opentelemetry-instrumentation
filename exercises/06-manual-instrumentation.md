@@ -1,6 +1,6 @@
 # Exercise 06 — Manual Instrumentation
 
-[← Exercise 05](05-post-processing.md)
+[← Exercise 05](05-processing.md)
 
 In this exercise you write OpenTelemetry instrumentation by hand — replacing a third-party
 database driver wrapper on the backend and adding a login instrumentation shell on the frontend.
@@ -257,4 +257,4 @@ git checkout 06-manual-instrumentation
 
 ---
 
-[← Exercise 05](05-post-processing.md)
+[← Exercise 05](05-processing.md)
