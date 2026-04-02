@@ -30,6 +30,9 @@ In this exercise you add [OBI](https://github.com/open-telemetry/opentelemetry-e
 
 ## Part 1 — Deploy OBI
 
+TODO!!! in general, can we add line numbers to diff?
+TODO!!! link to docker-compose
+
 ### Step 1 — Add the OBI service to docker-compose
 
 OBI needs to run as a privileged container with `pid: host` so it can observe all processes on the host. It also needs access to the Docker socket to attach container metadata to metrics.
@@ -55,6 +58,7 @@ OBI needs to run as a privileged container with `pid: host` so it can observe al
 
 ### Step 2 — Create the OBI config
 
+TODO!!! link to branch, not to main, confusing
 Create [obi/obi-config.yml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/02-setup-obi/obi/obi-config.yml). The `discovery.instrument` list scopes OBI to only the app containers — without it OBI would instrument every process on the host, including the collector itself.
 
 ```yaml
@@ -77,6 +81,8 @@ discovery:
 
 A pre-built RED metrics dashboard lives in [grafana/dashboards/red-metrics.json](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/02-setup-obi/grafana/dashboards/red-metrics.json). It is automatically provisioned on startup.
 
+TODO!!! comment in slides on origin
+
 ```bash
 # copies only this file from the exercise branch — does not switch branches
 git checkout origin/02-setup-obi -- grafana/dashboards/red-metrics.json
@@ -85,6 +91,8 @@ git checkout origin/02-setup-obi -- grafana/dashboards/red-metrics.json
 ---
 
 ## Verify
+
+TODO!!! load gen is too noisy, don't start it right away because it hides errors in yaml
 
 ```bash
 docker compose up --build
