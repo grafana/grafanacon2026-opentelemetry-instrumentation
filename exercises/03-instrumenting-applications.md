@@ -5,7 +5,7 @@
 In this exercise you add OpenTelemetry SDK instrumentation to both the Go backend and the Node.js frontend. Both services will emit traces, metrics, and logs via OTLP to the collector.
 
 - **Frontend (Node.js)** uses [zero-code auto-instrumentation](https://opentelemetry.io/docs/zero-code/js/) — no source changes are needed for traces and metrics. A single `--require` flag at startup loads the OTel SDK and automatically instruments HTTP, DNS, and other built-ins.
-- **Backend (Go)** uses manual SDK initialization following the [Go instrumentation guide](https://opentelemetry.io/docs/languages/go/). The SDK must be explicitly wired up in code, but in return you get fine-grained control over providers, exporters, and sampling.
+- **Backend (Go)** uses [otelconf](https://github.com/open-telemetry/opentelemetry-go-contrib/tree/main/otelconf) — a declarative configuration library. Instead of constructing providers and exporters by hand, you write an `otel-config.yaml` file (embedded into the binary) and call a single `otelconf.NewSDK(...)` function to initialize everything.
 
 ## Contents
 
@@ -17,11 +17,12 @@ In this exercise you add OpenTelemetry SDK instrumentation to both the Go backen
   - [Step 4 — Set env vars](#step-4--set-env-vars-in-docker-composeyaml)
 - [Part 2 — Backend (Go)](#part-2--backend-go)
   - [Step 5 — Install dependencies](#step-5--install-dependencies)
-  - [Step 6 — Create telemetry.go](#step-6--create-backendtelemetrygo)
-  - [Step 7 — Update main.go](#step-7--update-backendmaingo)
-  - [Step 8 — Set env vars](#step-8--set-env-vars-in-docker-composeyaml)
-- [Part 3 — Grafana](#part-3--add-the-grafana-dashboard-and-alerts)
-  - [Step 9 — Add the Grafana dashboard and alerts](#step-9--add-the-grafana-dashboard-and-alerts)
+  - [Step 6 — Create otel-config.yaml](#step-6--create-backendotel-configyaml)
+  - [Step 7 — Create telemetry.go](#step-7--create-backendtelemetrygo)
+  - [Step 8 — Update main.go](#step-8--update-backendmaingo)
+  - [Step 9 — Set env vars](#step-9--set-env-vars-in-docker-composeyaml)
+- [Part 3 — Grafana](#part-3--grafana)
+  - [Step 10 — Add the Grafana dashboard and alerts](#step-10--add-the-grafana-dashboard-and-alerts)
 - [Verify](#verify)
 - [Catch up](#catch-up)
 
@@ -32,7 +33,8 @@ In this exercise you add OpenTelemetry SDK instrumentation to both the Go backen
 | frontend | [frontend/package.json](../frontend/package.json)                                                                                                                                                                 | Add OTel packages                                             |
 | frontend | [frontend/server.js](../frontend/server.js)                                                                                                                                                                       | Add OTel log transport to Winston _(optional)_                |
 | frontend | [frontend/Dockerfile](../frontend/Dockerfile)                                                                                                                                                                     | Load auto-instrumentation via `--require`                     |
-| backend  | [backend/telemetry.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/03-instrumenting-applications/backend/telemetry.go)                                                           | New file — sets up OTel trace, metric, and log providers      |
+| backend  | [backend/otel-config.yaml](../backend/otel-config.yaml)                                                                                                                                                           | New file — declarative OTel SDK configuration                 |
+| backend  | [backend/telemetry.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/03-instrumenting-applications/backend/telemetry.go)                                                           | New file — loads `otel-config.yaml` and wires up SDK globals  |
 | backend  | [backend/main.go](../backend/main.go)                                                                                                                                                                             | Call `setupTelemetry`; add HTTP middleware                    |
 | both     | [docker-compose.yaml](../docker-compose.yaml)                                                                                                                                                                     | Set `OTEL_*` env vars for both services; mount Grafana alerts |
 | —        | [grafana/dashboards/apm-dashboard.json](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/03-instrumenting-applications/grafana/dashboards/apm-dashboard.json)                         | New APM dashboard — traces, metrics, and logs                 |
@@ -97,56 +99,88 @@ In this exercise you add OpenTelemetry SDK instrumentation to both the Go backen
 
 ```bash
 cd backend
-go get go.opentelemetry.io/otel \
-       go.opentelemetry.io/otel/sdk \
-       go.opentelemetry.io/otel/sdk/log \
-       go.opentelemetry.io/otel/sdk/metric \
-       go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp \
-       go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp \
-       go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp \
+go get go.opentelemetry.io/contrib/otelconf \
        go.opentelemetry.io/contrib/bridges/otelslog \
        go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux
 go mod tidy
 cd ..
 ```
 
-### Step 6 — Create [backend/telemetry.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/03-instrumenting-applications/backend/telemetry.go)
+`otelconf` replaces the individual exporter and SDK packages — it reads a YAML config file and constructs all providers internally.
 
-Set up the three OTel SDK providers and replace the default `slog` logger with an OTel bridge. All exporters use OTLP HTTP and pick up `OTEL_EXPORTER_OTLP_ENDPOINT` from the environment.
+### Step 6 — Create [backend/otel-config.yaml](../backend/otel-config.yaml)
+
+This file declares the full SDK configuration — exporters, readers, propagators, and resource attributes. It is embedded into the binary at compile time (see Step 7).
+
+```yaml
+file_format: "1.0"
+
+resource:
+  attributes:
+    - name: service.name
+      value: tapas-backend
+
+tracer_provider:
+  processors:
+    - batch:
+        exporter:
+          otlp_http:
+            endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4318}/v1/traces
+
+meter_provider:
+  readers:
+    - periodic:
+        interval: 5000
+        exporter:
+          otlp_http:
+            endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4318}/v1/metrics
+
+logger_provider:
+  processors:
+    - batch:
+        exporter:
+          otlp_http:
+            endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4318}/v1/logs
+
+propagator:
+  composite:
+    - tracecontext
+    - baggage
+```
+
+`${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4318}` uses the env var when set, falling back to the default collector address.
+
+### Step 7 — Create [backend/telemetry.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/03-instrumenting-applications/backend/telemetry.go)
+
+Embed the config file and call `otelconf.NewSDK` to build all providers in one call:
 
 ```go
-func setupTelemetry(ctx context.Context) (func(context.Context) error, error) {
-	// Traces
-	traceExp, err := otlptracehttp.New(ctx)
-	// ...
-	tp := sdktrace.NewTracerProvider(sdktrace.WithBatcher(traceExp))
-	otel.SetTracerProvider(tp)
-	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
-		propagation.TraceContext{},
-		propagation.Baggage{},
-	))
+//go:embed otel-config.yaml
+var otelConfig []byte
 
-	// Metrics
-	metricExp, err := otlpmetrichttp.New(ctx)
-	// ...
-	mp := sdkmetric.NewMeterProvider(
-		sdkmetric.WithReader(sdkmetric.NewPeriodicReader(metricExp,
-			sdkmetric.WithInterval(5*time.Second),
-		)),
-	)
-	otel.SetMeterProvider(mp)
+func setupTelemetry(_ context.Context) (func(context.Context) error, error) {
+	c, err := otelconf.ParseYAML(otelConfig)
+	if err != nil {
+		return nil, err
+	}
+	sdk, err := otelconf.NewSDK(otelconf.WithOpenTelemetryConfiguration(*c))
+	if err != nil {
+		return nil, err
+	}
+	otel.SetTracerProvider(sdk.TracerProvider())
+	otel.SetMeterProvider(sdk.MeterProvider())
+	otel.SetTextMapPropagator(sdk.Propagator())
 
-	// Logs — bridge slog to OTel
-	logExp, err := otlploghttp.New(ctx)
-	// ...
-	lp := sdklog.NewLoggerProvider(sdklog.WithProcessor(sdklog.NewBatchProcessor(logExp)))
-	slog.SetDefault(slog.New(otelslog.NewHandler("backend", otelslog.WithLoggerProvider(lp))))
+	slog.SetDefault(slog.New(otelslog.NewHandler("backend",
+		otelslog.WithLoggerProvider(sdk.LoggerProvider()))))
 
-	return func(ctx context.Context) error { /* shutdown all three */ }, nil
+	return sdk.Shutdown, nil
 }
 ```
 
-### Step 7 — Update [backend/main.go](../backend/main.go)
+`//go:embed` bakes the YAML into the binary at compile time — no file path to manage at runtime.
+
+### Step 8 — Update [backend/main.go](../backend/main.go)
 
 Call `setupTelemetry` at startup and add the gorilla/mux HTTP middleware to create a span for every inbound request:
 
@@ -165,23 +199,22 @@ Call `setupTelemetry` at startup and add the gorilla/mux HTTP middleware to crea
 +	r.Use(otelmux.Middleware("backend"))
 ```
 
-### Step 8 — Set env vars in [docker-compose.yaml](../docker-compose.yaml)
+### Step 9 — Set env vars in [docker-compose.yaml](../docker-compose.yaml)
 
 ```diff
    backend:
      environment:
-+      OTEL_SERVICE_NAME: backend                              # identifies this service in traces and metrics
-+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318 # where to send telemetry
++      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318 # overrides the default in otel-config.yaml
 +      OTEL_SEMCONV_STABILITY_OPT_IN: database                 # use stable DB semconv (db.query.summary, etc.)
 ```
 
-The code in this exercise also wraps the database connection with [`otelsql`](https://github.com/XSAM/otelsql), a third-party driver wrapper that automatically creates spans for every SQL query. `OTEL_SEMCONV_STABILITY_OPT_IN: database` tells `otelsql` to emit stable attribute names (`db.query.summary`, `db.query.text`) instead of the deprecated `db.statement`. [Exercise 06](06-manual-instrumentation.md) replaces `otelsql` with a hand-written wrapper that implements semantic conventions more precisely.
+`service.name` and the exporter endpoints are already declared in `otel-config.yaml` (with `http://otel-collector:4318` as the default), so you only need to set `OTEL_EXPORTER_OTLP_ENDPOINT` here if you want to override that default. `OTEL_SEMCONV_STABILITY_OPT_IN: database` is still required for [`otelsql`](https://github.com/XSAM/otelsql) — the third-party database driver wrapper used in this exercise — to emit stable attribute names (`db.query.summary`, `db.query.text`) instead of the deprecated `db.statement`. [Exercise 06](06-manual-instrumentation.md) replaces `otelsql` with a hand-written wrapper that implements semantic conventions more precisely.
 
 ---
 
-## Part 3 — Add the Grafana dashboard and alerts
+## Part 3 — Grafana
 
-### Step 9 — Add the Grafana dashboard and alerts
+### Step 10 — Add the Grafana dashboard and alerts
 
 ```bash
 # copies only these files from the exercise branch — does not switch branches
