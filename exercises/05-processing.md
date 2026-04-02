@@ -141,6 +141,8 @@ SHA-256("alice") → 2bd806c9...  (first 8 chars: 2bd806c9)
 
 Request logs should carry `http.request.method`, `url.path`, and `http.response.status_code`.
 
+Check out the [metrics drilldown](http://localhost:3000/a/grafana-metricsdrilldown-app/), [traces drilldown](http://localhost:3000/a/grafana-exploretraces-app/), and [logs drilldown](http://localhost:3000/a/grafana-lokiexplore-app/) — great tools to see what telemetry is available.
+
 ---
 
 ## Catch up

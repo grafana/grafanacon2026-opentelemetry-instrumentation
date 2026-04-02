@@ -11,7 +11,7 @@ const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || "info",
   format: winston.format.json(),
   defaultMeta: { service: "tapas-frontend" },
-  transports: [new winston.transports.Console()],
+  transports: [new winston.transports.Console({ level: "warn" })],
 });
 
 // CHAOS: blocks the Node.js event loop for ~1-2s per request on the search

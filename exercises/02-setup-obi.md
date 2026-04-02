@@ -22,7 +22,7 @@ In this exercise you add [OBI](https://github.com/open-telemetry/opentelemetry-e
 
 | Service | File                                                                                                                                                                 | What changes                                                                     |
 | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| —       | [docker-compose.yml](../docker-compose.yml)                                                                                                                          | Add the `obi` service                                                            |
+| —       | [docker-compose.yaml](../docker-compose.yaml)                                                                                                                        | Add the `obi` service                                                            |
 | obi     | [obi/obi-config.yml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/02-setup-obi/obi/obi-config.yml)                                   | New OBI config — targets the app containers and exports metrics to the collector |
 | —       | [grafana/dashboards/red-metrics.json](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/02-setup-obi/grafana/dashboards/red-metrics.json) | New RED metrics dashboard — request rate, error rate, and latency per service    |
 
@@ -79,7 +79,7 @@ A pre-built RED metrics dashboard lives in [grafana/dashboards/red-metrics.json]
 
 ```bash
 # copies only this file from the exercise branch — does not switch branches
-git checkout 02-setup-obi -- grafana/dashboards/red-metrics.json
+git checkout origin/02-setup-obi -- grafana/dashboards/red-metrics.json
 ```
 
 ---
@@ -92,6 +92,8 @@ make load  # runs continuously — keep it running in a separate terminal, Ctrl+
 ```
 
 Open <http://localhost:3000/d/red-metrics>. You should see request rate, error rate, and P95 latency panels for the `backend` and `frontend` services.
+
+Check out the [metrics drilldown](http://localhost:3000/a/grafana-metricsdrilldown-app/) — a great tool to see what metrics are available.
 
 ---
 

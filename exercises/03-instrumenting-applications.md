@@ -14,12 +14,12 @@ In this exercise you add OpenTelemetry SDK instrumentation to both the Go backen
   - [Step 1 — Add dependencies](#step-1--add-dependencies-to-frontendpackagejson)
   - [Step 2 — Add the OTel log transport (optional)](#step-2--add-the-otel-log-transport-in-frontendserverjs-optional)
   - [Step 3 — Load auto-instrumentation](#step-3--load-auto-instrumentation-in-frontenddockerfile)
-  - [Step 4 — Set env vars](#step-4--set-env-vars-in-docker-composeyml)
+  - [Step 4 — Set env vars](#step-4--set-env-vars-in-docker-composeyaml)
 - [Part 2 — Backend (Go)](#part-2--backend-go)
   - [Step 5 — Install dependencies](#step-5--install-dependencies)
   - [Step 6 — Create telemetry.go](#step-6--create-backendtelemetrygo)
   - [Step 7 — Update main.go](#step-7--update-backendmaingo)
-  - [Step 8 — Set env vars](#step-8--set-env-vars-in-docker-composeyml)
+  - [Step 8 — Set env vars](#step-8--set-env-vars-in-docker-composeyaml)
 - [Part 3 — Grafana](#part-3--add-the-grafana-dashboard-and-alerts)
   - [Step 9 — Add the Grafana dashboard and alerts](#step-9--add-the-grafana-dashboard-and-alerts)
 - [Verify](#verify)
@@ -34,7 +34,7 @@ In this exercise you add OpenTelemetry SDK instrumentation to both the Go backen
 | frontend | [frontend/Dockerfile](../frontend/Dockerfile)                                                                                                                                                                     | Load auto-instrumentation via `--require`                     |
 | backend  | [backend/telemetry.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/03-instrumenting-applications/backend/telemetry.go)                                                           | New file — sets up OTel trace, metric, and log providers      |
 | backend  | [backend/main.go](../backend/main.go)                                                                                                                                                                             | Call `setupTelemetry`; add HTTP middleware                    |
-| both     | [docker-compose.yml](../docker-compose.yml)                                                                                                                                                                       | Set `OTEL_*` env vars for both services; mount Grafana alerts |
+| both     | [docker-compose.yaml](../docker-compose.yaml)                                                                                                                                                                     | Set `OTEL_*` env vars for both services; mount Grafana alerts |
 | —        | [grafana/dashboards/apm-dashboard.json](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/03-instrumenting-applications/grafana/dashboards/apm-dashboard.json)                         | New APM dashboard — traces, metrics, and logs                 |
 | —        | [grafana/provisioning/alerting/frontend-alerts.yml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/03-instrumenting-applications/grafana/provisioning/alerting/frontend-alerts.yml) | New alert rules for frontend error rate and latency           |
 
@@ -79,7 +79,7 @@ In this exercise you add OpenTelemetry SDK instrumentation to both the Go backen
 
 `--require` executes the module before any other code loads. This is how it can monkey-patch built-in modules like `http` — the patches are in place before the app imports anything.
 
-### Step 4 — Set env vars in [docker-compose.yml](../docker-compose.yml)
+### Step 4 — Set env vars in [docker-compose.yaml](../docker-compose.yaml)
 
 ```diff
    frontend:
@@ -165,7 +165,7 @@ Call `setupTelemetry` at startup and add the gorilla/mux HTTP middleware to crea
 +	r.Use(otelmux.Middleware("backend"))
 ```
 
-### Step 8 — Set env vars in [docker-compose.yml](../docker-compose.yml)
+### Step 8 — Set env vars in [docker-compose.yaml](../docker-compose.yaml)
 
 ```diff
    backend:
@@ -185,11 +185,11 @@ The code in this exercise also wraps the database connection with [`otelsql`](ht
 
 ```bash
 # copies only these files from the exercise branch — does not switch branches
-git checkout 03-instrumenting-applications -- grafana/dashboards/apm-dashboard.json
-git checkout 03-instrumenting-applications -- grafana/provisioning/alerting/frontend-alerts.yml
+git checkout origin/03-instrumenting-applications -- grafana/dashboards/apm-dashboard.json
+git checkout origin/03-instrumenting-applications -- grafana/provisioning/alerting/frontend-alerts.yml
 ```
 
-Also mount the alerting provisioning directory in [docker-compose.yml](../docker-compose.yml):
+Also mount the alerting provisioning directory in [docker-compose.yaml](../docker-compose.yaml):
 
 ```diff
    lgtm:
@@ -207,6 +207,8 @@ make load  # runs continuously — keep it running in a separate terminal, Ctrl+
 ```
 
 Open <http://localhost:3000/d/apm-dashboard>. You should see traces, metrics, and logs from both services.
+
+Check out the [metrics drilldown](http://localhost:3000/a/grafana-metricsdrilldown-app/), [traces drilldown](http://localhost:3000/a/grafana-exploretraces-app/), and [logs drilldown](http://localhost:3000/a/grafana-lokiexplore-app/) — great tools to see what telemetry is available.
 
 ---
 

@@ -45,19 +45,6 @@ The first build downloads images and compiles both services — it can take seve
 
 ## Getting Started
 
-Clone `grafana/grafanacon2026-opentelemetry-instrumentation`
-
-```bash
-git clone https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation
-cd grafanacon2026-opentelemetry-instrumentation
-```
-
-Start all services
-
-```bash
-docker compose up --build
-```
-
 Browse the app at `http://localhost:8080` — search restaurants, log in, submit ratings
 
 Open Grafana at `http://localhost:3000` — the observability stack is configured and ready; we'll add instrumentation to populate it during the workshop. You should still be able to see OTel Collector self-diagnostic metrics in the [metrics drilldown](http://localhost:3000/a/grafana-metricsdrilldown-app/)
@@ -112,7 +99,7 @@ We'll add dashboards throughout the workshop.
 ├── grafana/          # Grafana dashboard definitions and provisioning config
 ├── otel-collector/   # OpenTelemetry Collector config
 ├── tests/            # Integration tests
-└── docker-compose.yml
+└── docker-compose.yaml
 ```
 
 ### Running Tests

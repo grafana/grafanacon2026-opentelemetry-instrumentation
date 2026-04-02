@@ -23,7 +23,7 @@ In this exercise you configure the OpenTelemetry Collector to scrape infrastruct
 | Service   | File                                                                                                                                                                           | What changes                                                                                                |
 | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
 | collector | [otel-collector/config.yaml](../otel-collector/config.yaml)                                                                                                                    | Add `hostmetrics` and `docker_stats` receivers; add `resourcedetection` processor; wire them into pipelines |
-| collector | [docker-compose.yml](../docker-compose.yml)                                                                                                                                    | Mount the Docker socket and host filesystem into the collector container                                    |
+| collector | [docker-compose.yaml](../docker-compose.yaml)                                                                                                                                  | Mount the Docker socket and host filesystem into the collector container                                    |
 | —         | [grafana/dashboards/hostmetrics.json](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/01-setup-infra-metrics/grafana/dashboards/hostmetrics.json) | New dashboard — CPU, memory, disk, network for the host and per-container CPU/memory                        |
 
 ---
@@ -32,10 +32,10 @@ In this exercise you configure the OpenTelemetry Collector to scrape infrastruct
 
 ### Step 1 — Mount the Docker socket and host filesystem
 
-The `hostmetrics` receiver reads from the host filesystem and `docker_stats` reads from the Docker socket. Expose both to the collector container in [docker-compose.yml](../docker-compose.yml):
+The `hostmetrics` receiver reads from the host filesystem and `docker_stats` reads from the Docker socket. Expose both to the collector container in [docker-compose.yaml](../docker-compose.yaml):
 
 ```diff
-# docker-compose.yml
+# docker-compose.yaml
    volumes:
      - ./otel-collector/config.yaml:/etc/otelcol-contrib/config.yaml:ro
 +    - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -142,7 +142,7 @@ A pre-built dashboard definition lives in [grafana/dashboards/hostmetrics.json](
 
 ```bash
 # copies only this file from the exercise branch — does not switch branches
-git checkout 01-setup-infra-metrics -- grafana/dashboards/hostmetrics.json
+git checkout origin/01-setup-infra-metrics -- grafana/dashboards/hostmetrics.json
 ```
 
 ---
@@ -155,6 +155,8 @@ make load  # runs continuously — keep it running in a separate terminal, Ctrl+
 ```
 
 Open <http://localhost:3000/d/hostmetrics>. You should see CPU, memory, disk, and network panels populated within a few seconds.
+
+Check out the [metrics drilldown](http://localhost:3000/a/grafana-metricsdrilldown-app/) — a great tool to see what metrics are available.
 
 ---
 

@@ -25,7 +25,7 @@ Drop noisy spans with a custom sampler, suppress instrumentation modules, enrich
 | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
 | backend   | [backend/sampler.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/backend/sampler.go)     | New file — custom sampler that drops `/api/health` spans                         |
 | backend   | [backend/telemetry.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/backend/telemetry.go) | Wire the custom sampler into the `TracerProvider`                                |
-| frontend  | [docker-compose.yml](../docker-compose.yml)                                                                                                               | Disable the `net` auto-instrumentation module                                    |
+| frontend  | [docker-compose.yaml](../docker-compose.yaml)                                                                                                             | Disable the `net` auto-instrumentation module                                    |
 | frontend  | [frontend/server.js](../frontend/server.js)                                                                                                               | Set `enduser.id` and `enduser.pseudo.id` on every authenticated span             |
 | collector | [otel-collector/config.yaml](../otel-collector/config.yaml)                                                                                               | Filter processor that drops static-file and health-check spans from the frontend |
 
@@ -102,7 +102,7 @@ The `net` module instrumentation produces low-level TCP spans that are rarely us
 
 ### Step 3 — Disable the `net` instrumentation
 
-In [docker-compose.yml](../docker-compose.yml):
+In [docker-compose.yaml](../docker-compose.yaml):
 
 ```diff
    frontend:
@@ -243,6 +243,8 @@ Run the TraceQL queries below — click each link to open Grafana Explore with t
 ```traceql
 { resource.service.name = "frontend" && kind = server && span.url.path =~ ".*(css|js|ico|png)" }
 ```
+
+Check out the [metrics drilldown](http://localhost:3000/a/grafana-metricsdrilldown-app/), [traces drilldown](http://localhost:3000/a/grafana-exploretraces-app/), and [logs drilldown](http://localhost:3000/a/grafana-lokiexplore-app/) — great tools to see what telemetry is available.
 
 ---
 

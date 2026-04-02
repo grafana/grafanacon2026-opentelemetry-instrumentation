@@ -247,6 +247,8 @@ The span should have `error.type` = `user_not_found` and span status `ERROR`. Ch
 `auth.client.login.duration` metric in the **Metrics** panel — the `error.type` dimension
 should appear on the histogram.
 
+Check out the [metrics drilldown](http://localhost:3000/a/grafana-metricsdrilldown-app/), [traces drilldown](http://localhost:3000/a/grafana-exploretraces-app/), and [logs drilldown](http://localhost:3000/a/grafana-lokiexplore-app/) — great tools to see what telemetry is available.
+
 ---
 
 ## Catch up
