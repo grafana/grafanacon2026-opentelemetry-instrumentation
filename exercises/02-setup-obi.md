@@ -49,9 +49,9 @@ OBI needs to run as a privileged container with `pid: host` so it can observe al
 +    volumes:
 +      # required if you want extra container metadata attributes
 +      - /var/run/docker.sock:/var/run/docker.sock:ro
-+      - ./obi/obi-config.yaml:/etc/obi/config.yml:ro
++      - ./obi/obi-config.yaml:/etc/obi/config.yaml:ro
 +    environment:
-+      OTEL_EBPF_CONFIG_PATH: /etc/obi/config.yml
++      OTEL_EBPF_CONFIG_PATH: /etc/obi/config.yaml
 +    depends_on:
 +      - otel-collector
 ```
