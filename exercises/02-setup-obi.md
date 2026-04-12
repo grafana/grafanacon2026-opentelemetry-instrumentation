@@ -5,7 +5,7 @@
 In this exercise you add [OBI](https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation) — the OpenTelemetry eBPF Instrument — to the stack. OBI automatically captures HTTP and RPC metrics for any process on the host using Linux eBPF, with no code changes or language agents required.
 
 > [!NOTE]
-> OBI uses Linux eBPF and requires a Linux host. On macOS, the `obi` container will fail to start — skip this exercise or use a Linux VM / remote Docker context.
+> OBI uses Linux eBPF and runs as a privileged Docker container. On macOS and Windows, Docker Desktop provides a Linux VM where OBI runs — all other containers share the same Linux kernel, so OBI can observe them with no extra setup. OBI cannot run directly on macOS or Windows (outside Docker).
 
 ## Contents
 
@@ -22,7 +22,7 @@ In this exercise you add [OBI](https://github.com/open-telemetry/opentelemetry-e
 
 | Service | File                                                                                                                                                                 | What changes                                                                     |
 | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| —       | [docker-compose.yaml](../docker-compose.yaml)                                                                                                                        | Add the `obi` service                                                            |
+| —       | [docker-compose.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/02-setup-obi/docker-compose.yaml)                                 | Add the `obi` service                                                            |
 | obi     | [obi/obi-config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/02-setup-obi/obi/obi-config.yaml)                                 | New OBI config — targets the app containers and exports metrics to the collector |
 | —       | [grafana/dashboards/red-metrics.json](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/02-setup-obi/grafana/dashboards/red-metrics.json) | New RED metrics dashboard — request rate, error rate, and latency per service    |
 
@@ -30,12 +30,11 @@ In this exercise you add [OBI](https://github.com/open-telemetry/opentelemetry-e
 
 ## Part 1 — Deploy OBI
 
-TODO!!! in general, can we add line numbers to diff?
-TODO!!! link to docker-compose
-
 ### Step 1 — Add the OBI service to docker-compose
 
 OBI needs to run as a privileged container with `pid: host` so it can observe all processes on the host. It also needs access to the Docker socket to attach container metadata to metrics.
+
+In [docker-compose.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/02-setup-obi/docker-compose.yaml):
 
 ```diff
 +  obi:
@@ -58,7 +57,6 @@ OBI needs to run as a privileged container with `pid: host` so it can observe al
 
 ### Step 2 — Create the OBI config
 
-TODO!!! link to branch, not to main, confusing
 Create [obi/obi-config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/02-setup-obi/obi/obi-config.yaml). The `discovery.instrument` list scopes OBI to only the app containers — without it OBI would instrument every process on the host, including the collector itself.
 
 ```yaml
@@ -80,8 +78,6 @@ discovery:
 ### Step 3 — Add the Grafana dashboard
 
 A pre-built RED metrics dashboard lives in [grafana/dashboards/red-metrics.json](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/02-setup-obi/grafana/dashboards/red-metrics.json). It is automatically provisioned on startup.
-
-TODO!!! comment in slides on origin
 
 ```bash
 # copies only this file from the exercise branch — does not switch branches

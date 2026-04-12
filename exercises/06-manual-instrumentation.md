@@ -26,10 +26,10 @@ database driver wrapper on the backend and adding a login instrumentation shell 
 | File                                                                                                                                                            | Lang | What changes                                                                   |
 | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ------------------------------------------------------------------------------ |
 | [backend/db/instrumented.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/06-manual-instrumentation/backend/db/instrumented.go) | Go   | New — `DB` wrapper with OTel instrumentation                                   |
-| [backend/db/db.go](../backend/db/db.go)                                                                                                                         | Go   | Use `sql.Open` + `NewDB`; remove otelsql                                       |
-| [backend/go.mod](../backend/go.mod)                                                                                                                             | Go   | Remove `github.com/XSAM/otelsql`                                               |
+| [backend/db/db.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/06-manual-instrumentation/backend/db/db.go)                     | Go   | Use `sql.Open` + `NewDB`; remove otelsql                                       |
+| [backend/go.mod](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/06-manual-instrumentation/backend/go.mod)                         | Go   | Remove `github.com/XSAM/otelsql`                                               |
 | [frontend/otel-auth.js](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/06-manual-instrumentation/frontend/otel-auth.js)           | JS   | New — `instrumentLogin` wrapper with OTel span and metrics                     |
-| [frontend/server.js](../frontend/server.js)                                                                                                                     | JS   | OAuth callback uses `instrumentLogin`; local login records the metric directly |
+| [frontend/server.js](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/06-manual-instrumentation/frontend/server.js)                 | JS   | OAuth callback uses `instrumentLogin`; local login records the metric directly |
 
 ---
 
@@ -97,7 +97,7 @@ Each method also records a `db.client.operation.duration` histogram with the sam
 
 ---
 
-### Step 2 — Update [backend/db/db.go](../backend/db/db.go)
+### Step 2 — Update [backend/db/db.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/06-manual-instrumentation/backend/db/db.go)
 
 Replace `otelsql.Open(...)` with `sql.Open(...)`, wrap the result, and tidy the module:
 
@@ -172,7 +172,7 @@ async function instrumentLogin(provider, fn) {
 
 ---
 
-### Step 4 — Use `instrumentLogin` in [frontend/server.js](../frontend/server.js)
+### Step 4 — Use `instrumentLogin` in [frontend/server.js](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/06-manual-instrumentation/frontend/server.js)
 
 The OAuth callback wraps all business logic inside `instrumentLogin`:
 
@@ -197,7 +197,7 @@ or trace backend required.
 **Backend** — [tests/backend/instrumentation_test.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/06-manual-instrumentation/tests/backend/instrumentation_test.go)
 uses an in-memory span exporter against a real database.
 
-**Frontend** — [tests/frontend/server.test.js](../tests/frontend/server.test.js)
+**Frontend** — [tests/frontend/server.test.js](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/06-manual-instrumentation/tests/frontend/server.test.js)
 uses in-memory span and metric exporters.
 
 ```bash

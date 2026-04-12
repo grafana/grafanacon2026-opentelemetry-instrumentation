@@ -21,13 +21,13 @@ Drop noisy spans with a custom sampler, suppress instrumentation modules, enrich
 
 ## What you will change
 
-| Service   | File                                                                                                                                                      | What changes                                                                     |
-| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| backend   | [backend/sampler.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/backend/sampler.go)     | New file — custom sampler that drops `/api/health` spans                         |
-| backend   | [backend/telemetry.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/backend/telemetry.go) | Wire the custom sampler into the `TracerProvider`                                |
-| frontend  | [docker-compose.yaml](../docker-compose.yaml)                                                                                                             | Disable the `net` auto-instrumentation module                                    |
-| frontend  | [frontend/server.js](../frontend/server.js)                                                                                                               | Set `enduser.id` and `enduser.pseudo.id` on every authenticated span             |
-| collector | [otel-collector/config.yaml](../otel-collector/config.yaml)                                                                                               | Filter processor that drops static-file and health-check spans from the frontend |
+| Service   | File                                                                                                                                                                  | What changes                                                                     |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| backend   | [backend/sampler.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/backend/sampler.go)                 | New file — custom sampler that drops `/api/health` spans                         |
+| backend   | [backend/telemetry.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/backend/telemetry.go)             | Wire the custom sampler into the `TracerProvider`                                |
+| frontend  | [docker-compose.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/docker-compose.yaml)               | Disable the `net` auto-instrumentation module                                    |
+| frontend  | [frontend/server.js](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/frontend/server.js)                 | Set `enduser.id` and `enduser.pseudo.id` on every authenticated span             |
+| collector | [otel-collector/config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/otel-collector/config.yaml) | Filter processor that drops static-file and health-check spans from the frontend |
 
 ---
 
@@ -102,7 +102,7 @@ The `net` module instrumentation produces low-level TCP spans that are rarely us
 
 ### Step 3 — Disable the `net` instrumentation
 
-In [docker-compose.yaml](../docker-compose.yaml):
+In [docker-compose.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/docker-compose.yaml):
 
 ```diff
    frontend:
@@ -122,7 +122,7 @@ Auto-instrumentation knows nothing about session state. Setting attributes on th
 
 ### Step 4 — Set `enduser.id` on incoming spans
 
-In [frontend/server.js](../frontend/server.js), add the import and extend the existing auth middleware:
+In [frontend/server.js](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/frontend/server.js), add the import and extend the existing auth middleware:
 
 ```diff
 +const { trace } = require('@opentelemetry/api');
@@ -166,7 +166,7 @@ The [filter processor](https://github.com/open-telemetry/opentelemetry-collector
 
 ### Step 5 — Add a filter processor
 
-In [otel-collector/config.yaml](../otel-collector/config.yaml):
+In [otel-collector/config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/otel-collector/config.yaml):
 
 ```diff
  processors:

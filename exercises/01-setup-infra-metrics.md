@@ -22,8 +22,8 @@ In this exercise you configure the OpenTelemetry Collector to scrape infrastruct
 
 | Service   | File                                                                                                                                                                           | What changes                                                                                                |
 | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
-| collector | [otel-collector/config.yaml](../otel-collector/config.yaml)                                                                                                                    | Add `hostmetrics` and `docker_stats` receivers; add `resourcedetection` processor; wire them into pipelines |
-| collector | [docker-compose.yaml](../docker-compose.yaml)                                                                                                                                  | Mount the Docker socket and host filesystem into the collector container                                    |
+| collector | [otel-collector/config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/01-setup-infra-metrics/otel-collector/config.yaml)                   | Add `hostmetrics` and `docker_stats` receivers; add `resourcedetection` processor; wire them into pipelines |
+| collector | [docker-compose.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/01-setup-infra-metrics/docker-compose.yaml)                                 | Mount the Docker socket and host filesystem into the collector container                                    |
 | —         | [grafana/dashboards/hostmetrics.json](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/01-setup-infra-metrics/grafana/dashboards/hostmetrics.json) | New dashboard — CPU, memory, disk, network for the host and per-container CPU/memory                        |
 
 ---
@@ -32,7 +32,7 @@ In this exercise you configure the OpenTelemetry Collector to scrape infrastruct
 
 ### Step 1 — Mount the Docker socket and host filesystem
 
-The `hostmetrics` receiver reads from the host filesystem and `docker_stats` reads from the Docker socket. Expose both to the collector container in [docker-compose.yaml](../docker-compose.yaml):
+The `hostmetrics` receiver reads from the host filesystem and `docker_stats` reads from the Docker socket. Expose both to the collector container in [docker-compose.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/01-setup-infra-metrics/docker-compose.yaml):
 
 ```diff
 # docker-compose.yaml
@@ -43,7 +43,7 @@ The `hostmetrics` receiver reads from the host filesystem and `docker_stats` rea
 ```
 
 > [!NOTE]
-> **macOS:** Docker Desktop runs containers inside a Linux VM, so `/` here is the VM's root filesystem — not your Mac's. `hostmetrics` will report the VM's CPU, memory, and disk rather than your laptop's. The dashboard will populate and look correct, but the numbers reflect the VM. This is expected behavior on macOS.
+> **macOS/Windows:** Docker Desktop runs containers inside a Linux VM, so `/` here is the VM's root filesystem — not your host machine's. `hostmetrics` will report the VM's CPU, memory, and disk rather than your laptop's. The dashboard will populate and look correct, but the numbers reflect the VM. This is expected behavior on macOS and Windows.
 
 ---
 
@@ -51,7 +51,7 @@ The `hostmetrics` receiver reads from the host filesystem and `docker_stats` rea
 
 ### Step 2 — Add receivers
 
-Add the following receivers to [otel-collector/config.yaml](../otel-collector/config.yaml).
+Add the following receivers to [otel-collector/config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/01-setup-infra-metrics/otel-collector/config.yaml).
 
 #### [hostmetrics](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.147.0/receiver/hostmetricsreceiver)
 

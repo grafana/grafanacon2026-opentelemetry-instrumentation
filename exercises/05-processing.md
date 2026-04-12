@@ -18,10 +18,10 @@ Use OTTL transform processors in the collector to anonymize sensitive span attri
 
 ## What you will change
 
-| Service   | File                                                        | What changes                                               |
-| --------- | ----------------------------------------------------------- | ---------------------------------------------------------- |
-| collector | [otel-collector/config.yaml](../otel-collector/config.yaml) | Replace `enduser.id` with a short irreversible hash        |
-| collector | [otel-collector/config.yaml](../otel-collector/config.yaml) | Rename custom log fields to stable HTTP semconv attributes |
+| Service   | File                                                                                                                                                | What changes                                               |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| collector | [otel-collector/config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/05-processing/otel-collector/config.yaml) | Replace `enduser.id` with a short irreversible hash        |
+| collector | [otel-collector/config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/05-processing/otel-collector/config.yaml) | Rename custom log fields to stable HTTP semconv attributes |
 
 ---
 
@@ -38,7 +38,7 @@ Replace `enduser.id` with the first 8 hex characters of its SHA-256 digest.
 
 ### Step 1 — Add a transform processor for traces
 
-In [otel-collector/config.yaml](../otel-collector/config.yaml):
+In [otel-collector/config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/05-processing/otel-collector/config.yaml):
 
 ```diff
 +  transform/anonymize_enduser:
@@ -82,7 +82,7 @@ Correct names make dashboards and queries consistent across all services.
 
 ### Step 3 — Add a transform processor for logs
 
-In [otel-collector/config.yaml](../otel-collector/config.yaml):
+In [otel-collector/config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/05-processing/otel-collector/config.yaml):
 
 ```diff
 +  transform/normalize_log_http:
