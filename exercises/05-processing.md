@@ -148,7 +148,7 @@ Check out the [metrics drilldown](http://localhost:3000/a/grafana-metricsdrilldo
 ## Catch up
 
 ```bash
-git checkout 05-processing
+git checkout origin/05-processing
 ```
 
 ---

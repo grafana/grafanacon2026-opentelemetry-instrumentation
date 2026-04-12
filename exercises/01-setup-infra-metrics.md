@@ -165,7 +165,7 @@ Check out the [metrics drilldown](http://localhost:3000/a/grafana-metricsdrilldo
 To skip ahead to the completed state of this exercise, check out the exercise branch:
 
 ```bash
-git checkout 01-setup-infra-metrics
+git checkout origin/01-setup-infra-metrics
 ```
 
 ---

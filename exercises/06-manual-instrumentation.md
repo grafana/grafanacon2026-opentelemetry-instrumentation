@@ -254,7 +254,7 @@ Check out the [metrics drilldown](http://localhost:3000/a/grafana-metricsdrilldo
 ## Catch up
 
 ```bash
-git checkout 06-manual-instrumentation
+git checkout origin/06-manual-instrumentation
 ```
 
 ---
