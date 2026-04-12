@@ -39,7 +39,7 @@ In [docker-compose.yaml](https://github.com/grafana/grafanacon2026-opentelemetry
 ```diff
 +  obi:
 +    container_name: obi
-+    image: otel/ebpf-instrument:main
++    image: otel/ebpf-instrument:v0.6.0
 +    # we can narrow the permissions with Linux capabilities
 +    # giving full privileges for the sake of simplicity
 +    privileged: true
@@ -66,9 +66,14 @@ otel_metrics_export:
   interval: 5s
 discovery:
   instrument:
+    # to avoid OBI instrumenting ALL the processes in the host
+    # (even the OTEL collector or the Docker services), we
+    # explicitly enumerate here the containers of our tapas application
     - container_name: db
     - container_name: backend
     - container_name: frontend
+    # - container_name: lgtm
+    # - container_name: otel-collector
 ```
 
 ---
