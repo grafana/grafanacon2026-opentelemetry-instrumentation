@@ -63,6 +63,7 @@ services:
     volumes:
       - ./grafana/provisioning/dashboards/dashboards.yaml:/otel-lgtm/grafana/conf/provisioning/dashboards/hostmetrics.yaml:ro
       - ./grafana/dashboards:/otel-lgtm/grafana/dashboards:ro
+      - ./grafana/provisioning/alerting:/otel-lgtm/grafana/conf/provisioning/alerting:ro
 
   otel-collector:
     container_name: otel-collector

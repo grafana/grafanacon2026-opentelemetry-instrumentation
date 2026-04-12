@@ -2,8 +2,8 @@
 
 [← Exercise 05](05-processing.md)
 
-In this exercise you write OpenTelemetry instrumentation by hand — replacing a third-party
-database driver wrapper on the backend and adding a login instrumentation shell on the frontend.
+In this exercise you write OpenTelemetry instrumentation by hand — adding DB tracing to the
+backend and a login instrumentation shell on the frontend.
 
 ## Contents
 
@@ -26,8 +26,7 @@ database driver wrapper on the backend and adding a login instrumentation shell 
 | File                                                                                                                                                            | Lang | What changes                                                                   |
 | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ------------------------------------------------------------------------------ |
 | [backend/db/instrumented.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/06-manual-instrumentation/backend/db/instrumented.go) | Go   | New — `DB` wrapper with OTel instrumentation                                   |
-| [backend/db/db.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/06-manual-instrumentation/backend/db/db.go)                     | Go   | Use `sql.Open` + `NewDB`; remove otelsql                                       |
-| [backend/go.mod](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/06-manual-instrumentation/backend/go.mod)                         | Go   | Remove `github.com/XSAM/otelsql`                                               |
+| [backend/db/db.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/06-manual-instrumentation/backend/db/db.go)                     | Go   | Wrap `sql.DB` with `NewDB`                                                     |
 | [frontend/otel-auth.js](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/06-manual-instrumentation/frontend/otel-auth.js)           | JS   | New — `instrumentLogin` wrapper with OTel span and metrics                     |
 | [frontend/server.js](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/06-manual-instrumentation/frontend/server.js)                 | JS   | OAuth callback uses `instrumentLogin`; local login records the metric directly |
 
@@ -46,7 +45,7 @@ pure login logic.
 > [!IMPORTANT]
 > Manual instrumentation is tedious and error-prone. Only do it when there is no high-quality
 > library available, or when you have specific requirements a library cannot meet. In the backend
-> case, `otelsql` works at the driver level and doesn't reliably follow OTel semantic conventions;
+> case there is no library that follows OTel DB semantic conventions precisely enough;
 > in the frontend case there is no library at all.
 
 ---
@@ -99,21 +98,18 @@ Each method also records a `db.client.operation.duration` histogram with the sam
 
 ### Step 2 — Update [backend/db/db.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/06-manual-instrumentation/backend/db/db.go)
 
-Replace `otelsql.Open(...)` with `sql.Open(...)`, wrap the result, and tidy the module:
+Wrap the existing `sql.DB` connection with `NewDB` and update the return type:
 
 ```diff
--conn, err := otelsql.Open("postgres", dsn, ...)
-+conn, err := sql.Open("postgres", dsn)
- // ...
--otelsql.RegisterDBStatsMetrics(conn, ...)
 +db, err := NewDB(conn, dsn)
++if err != nil {
++    return nil, fmt.Errorf("init db instrumentation: %w", err)
++}
+-return conn, nil
++return db, nil
 
 -func Connect() (*sql.DB, error) {
 +func Connect() (*DB, error) {
-```
-
-```bash
-cd backend && go mod tidy
 ```
 
 ---

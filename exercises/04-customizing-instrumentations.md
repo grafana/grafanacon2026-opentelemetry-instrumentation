@@ -35,7 +35,7 @@ Drop noisy spans with a custom sampler, suppress instrumentation modules, enrich
 
 Health-check endpoints are polled constantly and generate a large volume of low-value spans. A custom sampler drops them before they leave the process.
 
-We implement this for the **Go backend**, which uses manual SDK initialization. The **Node.js frontend** uses zero-code auto-instrumentation, so there is nowhere to wire up a custom sampler. Two alternatives exist:
+We implement this for the **Go backend**. The declarative `otelconf` config doesn't support custom Go samplers in YAML, so the TracerProvider is wired manually in code while metrics and logs continue to use the YAML config. The **Node.js frontend** uses zero-code auto-instrumentation, so there is nowhere to wire up a custom sampler. Two alternatives exist:
 
 - **Disable the instrumentation entirely** — no span is created. See [Part 2](#part-2--disable-noisy-auto-instrumentation-nodejs-frontend).
 - **Filter in the collector** — see [Part 4](#part-4--filter-frontend-noise-in-the-collector). Only safe for leaf spans; dropping a parent breaks the trace tree.
@@ -78,15 +78,36 @@ func (s dropHealthSampler) Description() string {
 
 ### Step 2 — Wire the sampler into the TracerProvider
 
-In [backend/telemetry.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/backend/telemetry.go):
+In [backend/telemetry.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/backend/telemetry.go), replace the single `otelconf.NewSDK` call with a hybrid setup — otelconf for metrics/logs/propagator, manual TracerProvider for the sampler:
 
 ```diff
- tp := sdktrace.NewTracerProvider(
- 	sdktrace.WithBatcher(traceExp),
-+	sdktrace.WithSampler(dropHealthSampler{
-+		delegate: sdktrace.ParentBased(sdktrace.AlwaysSample()),
-+	}),
- )
+-	otel.SetTracerProvider(sdk.TracerProvider())
+ 	otel.SetMeterProvider(sdk.MeterProvider())
+ 	otel.SetTextMapPropagator(sdk.Propagator())
++
++	traceExp, err := otlptracehttp.New(ctx)
++	if err != nil {
++		return nil, err
++	}
++	tp := sdktrace.NewTracerProvider(
++		sdktrace.WithBatcher(traceExp),
++		sdktrace.WithSampler(dropHealthSampler{
++			delegate: sdktrace.ParentBased(sdktrace.AlwaysSample()),
++		}),
++	)
++	otel.SetTracerProvider(tp)
+```
+
+Also update the shutdown to flush both providers:
+
+```diff
+-	return sdk.Shutdown, nil
++	return func(ctx context.Context) error {
++		if err := tp.Shutdown(ctx); err != nil {
++			return err
++		}
++		return sdk.Shutdown(ctx)
++	}, nil
 ```
 
 `ParentBased(AlwaysSample())` is the standard default: honour the sampling decision from an incoming `traceparent` header, sample everything without a parent. `dropHealthSampler` wraps it and intercepts health-check spans first.
