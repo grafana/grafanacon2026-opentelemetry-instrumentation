@@ -171,7 +171,7 @@ In [otel-collector/config.yaml](https://github.com/grafana/grafanacon2026-opente
 ```diff
  processors:
    resourcedetection:
-     detectors: [env, system, docker]
+     detectors: [env, system]
      timeout: 2s
      override: false
 

@@ -108,14 +108,14 @@ Scrapes CPU, disk, filesystem, memory, network, paging, and process metrics from
 
 ### Step 3 — Add the [resourcedetection](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.147.0/processor/resourcedetectionprocessor) processor
 
-Enriches every span, metric, and log with resource attributes detected at startup. `env` reads `OTEL_RESOURCE_ATTRIBUTES` from the collector's own environment — not from each application container. This makes it suitable for deployment-wide attributes like `deployment.environment.name` that apply uniformly to all telemetry. Configure per-service resources on each application independently.
+Enriches every span, metric, and log with resource attributes detected at startup. `env` reads `OTEL_RESOURCE_ATTRIBUTES` from the collector's own environment — not from each application container. This makes it suitable for deployment-wide attributes like `deployment.environment.name` that apply uniformly to all telemetry. Configure per-service resources on each application independently. `system` detects `host.name`, `os.type`, and related attributes from the host — required by the host metrics dashboard.
 
 Add the processor to [otel-collector/config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/01-setup-infra-metrics/otel-collector/config.yaml):
 
 ```diff
  processors:
 +  resourcedetection:
-+    detectors: [env]
++    detectors: [env, system]
 +    timeout: 2s
 +    override: false
 +
