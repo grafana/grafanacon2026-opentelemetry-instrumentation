@@ -23,7 +23,7 @@ In this exercise you add [OBI](https://github.com/open-telemetry/opentelemetry-e
 | Service | File                                                                                                                                                                 | What changes                                                                     |
 | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
 | —       | [docker-compose.yaml](../docker-compose.yaml)                                                                                                                        | Add the `obi` service                                                            |
-| obi     | [obi/obi-config.yml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/02-setup-obi/obi/obi-config.yml)                                   | New OBI config — targets the app containers and exports metrics to the collector |
+| obi     | [obi/obi-config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/02-setup-obi/obi/obi-config.yaml)                                 | New OBI config — targets the app containers and exports metrics to the collector |
 | —       | [grafana/dashboards/red-metrics.json](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/02-setup-obi/grafana/dashboards/red-metrics.json) | New RED metrics dashboard — request rate, error rate, and latency per service    |
 
 ---
@@ -49,7 +49,7 @@ OBI needs to run as a privileged container with `pid: host` so it can observe al
 +    volumes:
 +      # required if you want extra container metadata attributes
 +      - /var/run/docker.sock:/var/run/docker.sock:ro
-+      - ./obi/obi-config.yml:/etc/obi/config.yml:ro
++      - ./obi/obi-config.yaml:/etc/obi/config.yml:ro
 +    environment:
 +      OTEL_EBPF_CONFIG_PATH: /etc/obi/config.yml
 +    depends_on:
@@ -59,7 +59,7 @@ OBI needs to run as a privileged container with `pid: host` so it can observe al
 ### Step 2 — Create the OBI config
 
 TODO!!! link to branch, not to main, confusing
-Create [obi/obi-config.yml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/02-setup-obi/obi/obi-config.yml). The `discovery.instrument` list scopes OBI to only the app containers — without it OBI would instrument every process on the host, including the collector itself.
+Create [obi/obi-config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/02-setup-obi/obi/obi-config.yaml). The `discovery.instrument` list scopes OBI to only the app containers — without it OBI would instrument every process on the host, including the collector itself.
 
 ```yaml
 otel_metrics_export:
