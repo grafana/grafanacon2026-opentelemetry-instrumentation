@@ -127,7 +127,7 @@ func ListRestaurants(db *sql.DB) http.HandlerFunc {
 		}
 
 		sel := listSelect
-		if chaos.Enabled() {
+		if chaos.Triggered() {
 			// CHAOS: drop the photo subquery from the main SELECT so each
 			// restaurant's photos are fetched in a dedicated query below.
 			sel = listSelectChaos
@@ -155,7 +155,7 @@ func ListRestaurants(db *sql.DB) http.HandlerFunc {
 
 		// CHAOS: n+1 — one extra query per restaurant to fetch photo IDs,
 		// replacing the efficient correlated subquery in listSelect.
-		if chaos.Enabled() {
+		if chaos.Triggered() {
 			for _, rest := range restaurants {
 				photoRows, err := db.QueryContext(r.Context(),
 					"SELECT id FROM photos WHERE restaurant_id = $1 ORDER BY created_at", rest.ID,
@@ -189,7 +189,7 @@ func GetRestaurant(db *sql.DB) http.HandlerFunc {
 
 		// CHAOS: execute a query referencing a non-existent column so the DB
 		// returns an error that propagates all the way back to the browser.
-		if chaos.Enabled() {
+		if chaos.Triggered() {
 			var x string
 			err := db.QueryRowContext(r.Context(),
 				"SELECT r.nonexistent_col FROM restaurants r WHERE r.slug = $1", slug,

@@ -49,9 +49,6 @@ services:
       CHAOS_MODE: ${CHAOS_MODE:-}
     ports:
       - "8080:8080"
-    depends_on:
-      backend:
-        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health || exit 1"]
       interval: 10s

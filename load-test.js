@@ -9,7 +9,7 @@ import { randomItem } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
 
 export const options = {
-  vus: 2,
+  vus: 4,
   duration: '5m',
   thresholds: {
     http_req_failed: ['rate<0.05'],

@@ -88,8 +88,6 @@ git checkout origin/02-setup-obi -- grafana/dashboards/red-metrics.json
 
 ## Verify
 
-TODO!!! load gen is too noisy, don't start it right away because it hides errors in yaml
-
 ```bash
 docker compose up --build
 make load  # runs continuously — keep it running in a separate terminal, Ctrl+C to stop

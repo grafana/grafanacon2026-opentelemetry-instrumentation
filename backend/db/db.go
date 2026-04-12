@@ -23,7 +23,7 @@ func Connect() (*sql.DB, error) {
 	}
 	// CHAOS: single connection forces all queries to serialize, amplifying the
 	// n+1 query pattern into visible connection-wait latency.
-	if chaos.Enabled() {
+	if chaos.Triggered() {
 		conn.SetMaxOpenConns(1)
 	}
 	return conn, nil
