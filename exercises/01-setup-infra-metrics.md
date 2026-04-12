@@ -132,18 +132,18 @@ Add the processor to [otel-collector/config.yaml](https://github.com/grafana/gra
        receivers: [otlp]
 -      processors: [batch]
 +      processors: [resourcedetection, batch]
-       exporters: [otlphttp]
+       exporters: [otlp_http]
      metrics:
 -      receivers: [otlp]
 -      processors: [batch]
 +      receivers: [otlp, docker_stats, hostmetrics]
 +      processors: [resourcedetection, batch]
-       exporters: [otlphttp]
+       exporters: [otlp_http]
      logs:
        receivers: [otlp]
 -      processors: [batch]
 +      processors: [resourcedetection, batch]
-       exporters: [otlphttp]
+       exporters: [otlp_http]
 ```
 
 ---
