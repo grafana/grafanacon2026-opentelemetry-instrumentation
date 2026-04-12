@@ -75,6 +75,8 @@ services:
       OTEL_RESOURCE_ATTRIBUTES: deployment.environment.name=development
     volumes:
       - ./otel-collector/config.yaml:/etc/otelcol-contrib/config.yaml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /:/hostfs:ro
     depends_on:
       - lgtm
 

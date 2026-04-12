@@ -1,5 +1,8 @@
 # Barcelona Tapas Finder — OpenTelemetry Workshop
 
+> [!IMPORTANT]
+> You are on **[Exercise 01 — Setup infrastructure metrics](exercises/01-setup-infra-metrics.md)**
+
 A demo application for learning OpenTelemetry instrumentation. It helps users discover tapas restaurants in Barcelona.
 
 Workshop slides: [Getting started with OpenTelemetry instrumentation — GrafanaCON 2026](<Getting started with OpenTelemetry instrumentation - GrafanaCON 2026.pdf>)
@@ -79,15 +82,19 @@ The stack includes an OpenTelemetry Collector and a Grafana LGTM (Loki + Grafana
 ### OTel Collector
 
 The collector ([otel-collector/config.yaml](otel-collector/config.yaml)) receives telemetry over OTLP
-and forwards it to LGTM via OTLP HTTP.
+and forwards it to LGTM via OTLP HTTP and also scrapes infrastructure metrics:
 
-Collector is configured and ready to receive telemetry.
+- **hostmetrics**: CPU, disk, filesystem, load, memory, network, paging, and processes — collected every 10s from the host
+- **docker_stats**: Per-container resource metrics collected every 10s via the Docker socket
+- **resourcedetection** processor enriches every signal with host and env resource attributes
 
 ### Grafana Dashboards
 
 Open Grafana at `http://localhost:3000` (no login required).
 
-We'll add dashboards throughout the workshop.
+| Dashboard    | URL                                   | Description                                                                       |
+| ------------ | ------------------------------------- | --------------------------------------------------------------------------------- |
+| Host Metrics | <http://localhost:3000/d/hostmetrics> | CPU, memory, disk, and network metrics for the host; CPU and memory per container |
 
 ## Technical Details
 

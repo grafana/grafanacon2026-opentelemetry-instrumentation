@@ -6,7 +6,44 @@ receivers:
       http:
         endpoint: 0.0.0.0:4318
 
+  docker_stats:
+    endpoint: unix:///var/run/docker.sock
+    collection_interval: 10s
+    timeout: 5s
+
+  hostmetrics:
+    root_path: /hostfs
+    collection_interval: 10s
+    scrapers:
+      cpu:
+        metrics:
+          system.cpu.logical.count:
+            enabled: true
+      disk: {}
+      filesystem:
+        metrics:
+          system.filesystem.utilization:
+            enabled: true
+      load: {}
+      memory:
+        metrics:
+          system.memory.utilization:
+            enabled: true
+          system.memory.limit:
+            enabled: true
+      network:
+        metrics:
+          system.network.connections:
+            enabled: true
+      paging: {}
+      processes: {}
+
 processors:
+  resourcedetection:
+    detectors: [env, system]
+    timeout: 2s
+    override: false
+
   batch:
     timeout: 1s
 
@@ -20,13 +57,13 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
-      processors: [batch]
+      processors: [resourcedetection, batch]
       exporters: [otlp_http]
     metrics:
-      receivers: [otlp]
-      processors: [batch]
+      receivers: [otlp, docker_stats, hostmetrics]
+      processors: [resourcedetection, batch]
       exporters: [otlp_http]
     logs:
       receivers: [otlp]
-      processors: [batch]
+      processors: [resourcedetection, batch]
       exporters: [otlp_http]
