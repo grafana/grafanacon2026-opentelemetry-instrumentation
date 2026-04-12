@@ -51,62 +51,76 @@ The `hostmetrics` receiver reads from the host filesystem and `docker_stats` rea
 
 ### Step 2 — Add receivers
 
-Add the following receivers to [otel-collector/config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/01-setup-infra-metrics/otel-collector/config.yaml).
-
-#### [hostmetrics](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.147.0/receiver/hostmetricsreceiver)
-
-Scrapes CPU, disk, filesystem, memory, network, paging, and process metrics from the host every 10 s. `root_path` points to the bind-mounted host filesystem.
-
-```yaml
-hostmetrics:
-  root_path: /hostfs
-  collection_interval: 10s
-  scrapers:
-    cpu:
-      metrics:
-        system.cpu.logical.count:
-          enabled: true
-    disk: {}
-    filesystem:
-      metrics:
-        system.filesystem.utilization:
-          enabled: true
-    load: {}
-    memory:
-      metrics:
-        system.memory.utilization:
-          enabled: true
-        system.memory.limit:
-          enabled: true
-    network:
-      metrics:
-        system.network.connections:
-          enabled: true
-    paging: {}
-    processes: {}
-```
+Add the following receivers to [otel-collector/config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/01-setup-infra-metrics/otel-collector/config.yaml) under the existing `receivers:` key.
 
 #### [docker_stats](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.147.0/receiver/dockerstatsreceiver)
 
 Scrapes per-container CPU, memory, network, and block I/O metrics every 10 s via the Docker socket.
 
-```yaml
-docker_stats:
-  endpoint: unix:///var/run/docker.sock
-  collection_interval: 10s
-  timeout: 5s
+```diff
+ receivers:
+   otlp:
+     protocols:
+       grpc:
+         endpoint: 0.0.0.0:4317
+       http:
+         endpoint: 0.0.0.0:4318
++  docker_stats:
++    endpoint: unix:///var/run/docker.sock
++    collection_interval: 10s
++    timeout: 5s
+```
+
+#### [hostmetrics](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.147.0/receiver/hostmetricsreceiver)
+
+Scrapes CPU, disk, filesystem, memory, network, paging, and process metrics from the host every 10 s. `root_path` points to the bind-mounted host filesystem.
+
+```diff
+ receivers:
+   ...
++  hostmetrics:
++    root_path: /hostfs
++    collection_interval: 10s
++    scrapers:
++      cpu:
++        metrics:
++          system.cpu.logical.count:
++            enabled: true
++      disk: {}
++      filesystem:
++        metrics:
++          system.filesystem.utilization:
++            enabled: true
++      load: {}
++      memory:
++        metrics:
++          system.memory.utilization:
++            enabled: true
++          system.memory.limit:
++            enabled: true
++      network:
++        metrics:
++          system.network.connections:
++            enabled: true
++      paging: {}
++      processes: {}
 ```
 
 ### Step 3 — Add the [resourcedetection](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.147.0/processor/resourcedetectionprocessor) processor
 
-Enriches every span, metric, and log with host/OS/container resource attributes detected at startup.
+Enriches every span, metric, and log with resource attributes detected at startup. `env` reads `OTEL_RESOURCE_ATTRIBUTES` from the collector's own environment — not from each application container. This makes it suitable for deployment-wide attributes like `deployment.environment.name` that apply uniformly to all telemetry. Configure per-service resources on each application independently.
 
-```yaml
-processors:
-  resourcedetection:
-    detectors: [env, system, docker]
-    timeout: 2s
-    override: false
+Add the processor to [otel-collector/config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/01-setup-infra-metrics/otel-collector/config.yaml):
+
+```diff
+ processors:
++  resourcedetection:
++    detectors: [env]
++    timeout: 2s
++    override: false
++
+   batch:
+     timeout: 1s
 ```
 
 ### Step 4 — Wire everything into the pipelines
@@ -151,7 +165,12 @@ git checkout origin/01-setup-infra-metrics -- grafana/dashboards/hostmetrics.jso
 
 ```bash
 docker compose up --build
-make load  # runs continuously — keep it running in a separate terminal, Ctrl+C to stop
+```
+
+In a separate terminal, start the load generator (sends continuous traffic to the app so panels stay active):
+
+```bash
+make load  # Ctrl+C to stop
 ```
 
 Open <http://localhost:3000/d/hostmetrics>. You should see CPU, memory, disk, and network panels populated within a few seconds.
