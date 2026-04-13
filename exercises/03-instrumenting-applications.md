@@ -61,12 +61,15 @@ In this exercise you add OpenTelemetry SDK instrumentation to both the Go backen
 > This step is optional. If you skip it, Winston logs will still appear in Loki as unstructured text, but they won't be correlated with traces via the OTel SDK.
 
 ```diff
-+const { OpenTelemetryTransportV3 } = require('@opentelemetry/winston-transport');
++const {
++  OpenTelemetryTransportV3,
++} = require("@opentelemetry/winston-transport");
 
  const logger = winston.createLogger({
    transports: [
-     new winston.transports.Console(),
-+    new OpenTelemetryTransportV3(), // forward log records to the OTel SDK
+-    new winston.transports.Console({ level: "warn" }),
++    new winston.transports.Console({ level: "warn" }),
++    new OpenTelemetryTransportV3(),
    ],
  });
 ```
@@ -76,7 +79,6 @@ In this exercise you add OpenTelemetry SDK instrumentation to both the Go backen
 ```diff
 -CMD ["node", "server.js"]
 +CMD ["node", "--require", "@opentelemetry/auto-instrumentations-node/register", "server.js"]
-+#                         ^ loads the OTel SDK and auto-instruments HTTP, DNS, etc. before app code runs
 ```
 
 `--require` executes the module before any other code loads. This is how it can monkey-patch built-in modules like `http` — the patches are in place before the app imports anything.
@@ -86,9 +88,10 @@ In this exercise you add OpenTelemetry SDK instrumentation to both the Go backen
 ```diff
    frontend:
      environment:
-+      OTEL_SERVICE_NAME: frontend                            # identifies this service in traces and metrics
-+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318 # where to send telemetry
-+      OTEL_SEMCONV_STABILITY_OPT_IN: http                   # use stable HTTP semconv (http.request.method, etc.)
++      OTEL_SERVICE_NAME: frontend
++      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
++      OTEL_METRIC_EXPORT_INTERVAL: "5000"
++      OTEL_SEMCONV_STABILITY_OPT_IN: http      # opt in to stable HTTP semconv (http.request.method, etc.)
 ```
 
 ---
@@ -185,17 +188,19 @@ func setupTelemetry(_ context.Context) (func(context.Context) error, error) {
 Call `setupTelemetry` at startup and add the gorilla/mux HTTP middleware to create a span for every inbound request:
 
 ```diff
+-	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelWarn})))
++	// Fallback logger (console) — replaced by OTel bridge if telemetry setup succeeds.
++	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug})))
++
 +	ctx := context.Background()
-+   // initialize SDK providers
 +	shutdown, err := setupTelemetry(ctx)
 +	if err != nil {
 +		slog.Error("failed to setup telemetry", "error", err)
 +	} else {
-+		defer shutdown(ctx) // flush and shut down exporters on exit
++		defer shutdown(ctx)
 +	}
  	...
  	r := mux.NewRouter()
-+   // instrument inbound HTTP requests
 +	r.Use(otelmux.Middleware("backend"))
 ```
 
@@ -204,8 +209,9 @@ Call `setupTelemetry` at startup and add the gorilla/mux HTTP middleware to crea
 ```diff
    backend:
      environment:
-+      OTEL_SERVICE_NAME: backend                              # read by ${OTEL_SERVICE_NAME} in otel-config.yaml
-+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318 # overrides the default in otel-config.yaml
++      OTEL_SERVICE_NAME: backend
++      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
++      OTEL_METRIC_EXPORT_INTERVAL: "5000"
 ```
 
 `otel-config.yaml` uses `${OTEL_SERVICE_NAME:-tapas-backend}` and `${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4318}` — env vars when set, falling back to the defaults.
