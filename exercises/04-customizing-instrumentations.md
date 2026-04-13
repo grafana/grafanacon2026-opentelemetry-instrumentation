@@ -10,11 +10,11 @@ Drop noisy spans with an instrumentation filter, suppress instrumentation module
 - [Part 1 — Drop health-check spans](#part-1--drop-health-check-spans)
   - [Step 1 — Filter health-check requests in the middleware](#step-1--filter-health-check-requests-in-the-middleware)
 - [Part 2 — Disable noisy auto-instrumentation (Node.js frontend)](#part-2--disable-noisy-auto-instrumentation-nodejs-frontend)
-  - [Step 3 — Disable the `net` instrumentation](#step-3--disable-the-net-instrumentation)
+  - [Step 2 — Disable the `net` instrumentation](#step-2--disable-the-net-instrumentation)
 - [Part 3 — Enrich spans with user identity](#part-3--enrich-spans-with-user-identity)
-  - [Step 4 — Set `enduser.id` on incoming spans](#step-4--set-enduserid-on-incoming-spans)
+  - [Step 3 — Set `enduser.id` on incoming spans](#step-3--set-enduserid-on-incoming-spans)
 - [Part 4 — Filter frontend noise in the collector](#part-4--filter-frontend-noise-in-the-collector)
-  - [Step 5 — Add a filter processor](#step-5--add-a-filter-processor)
+  - [Step 4 — Add a filter processor](#step-4--add-a-filter-processor)
 - [Verify](#verify)
 - [Catch up](#catch-up)
 
@@ -61,7 +61,7 @@ The filter receives the raw `*http.Request` before any span is created. Returnin
 
 The `net` module instrumentation produces low-level TCP spans that are rarely useful.
 
-### Step 3 — Disable the `net` instrumentation
+### Step 2 — Disable the `net` instrumentation
 
 In [docker-compose.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/docker-compose.yaml):
 
@@ -81,7 +81,7 @@ Accepts a comma-separated list, e.g. `net,dns`.
 
 Auto-instrumentation knows nothing about session state. Setting attributes on the active span in a middleware enriches every trace with the logged-in user.
 
-### Step 4 — Set `enduser.id` on incoming spans
+### Step 3 — Set `enduser.id` on incoming spans
 
 In [frontend/server.js](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/frontend/server.js), add the import and extend the existing auth middleware:
 
@@ -125,7 +125,7 @@ The [filter processor](https://github.com/open-telemetry/opentelemetry-collector
 > [!WARNING]
 > **Only drop leaf spans.** The collector cannot rewrite `parent_span_id` references. Dropping a parent orphans its children, breaking the trace tree. Static file requests and health-check pings are safe targets; for anything else prefer disabling the module ([Part 2](#part-2--disable-noisy-auto-instrumentation-nodejs-frontend)) or an instrumentation filter ([Part 1](#part-1--drop-health-check-spans)).
 
-### Step 5 — Add a filter processor
+### Step 4 — Add a filter processor
 
 In [otel-collector/config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/otel-collector/config.yaml):
 
@@ -155,7 +155,7 @@ In [otel-collector/config.yaml](https://github.com/grafana/grafanacon2026-opente
        receivers: [otlp]
 -      processors: [resourcedetection, batch]
 +      processors: [resourcedetection, filter/drop_frontend_noise, batch]
-       exporters: [otlphttp]
+       exporters: [otlp_http]
 ```
 
 The condition drops a span when all three are true: service is `frontend`, span kind is `SERVER`, and `url.path` is `/health` or a static file extension. The processor runs before `batch`, so filtered spans never reach the exporter.
