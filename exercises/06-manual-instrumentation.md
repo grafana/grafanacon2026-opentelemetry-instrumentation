@@ -91,8 +91,52 @@ func endSpan(ctx context.Context, span trace.Span, err error) {
 The slog bridge in [backend/telemetry.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/06-manual-instrumentation/backend/telemetry.go) exports the log and
 correlates it with the active trace via `ctx`.
 
-Each method also records a `db.client.operation.duration` histogram with the same
-`db.query.summary` and connection attributes.
+**Recording duration and errors on the histogram** — add a small helper that appends
+`error.type` to the metric attributes when a query fails, then use it in every method:
+
+```go
+func metricOptions(attrs attribute.Set, err error) []metric.RecordOption {
+    opts := []metric.RecordOption{metric.WithAttributeSet(attrs)}
+    if err != nil {
+        opts = append(opts, metric.WithAttributes(
+            attribute.String("error.type", fmt.Sprintf("%T", err)),
+        ))
+    }
+    return opts
+}
+
+// inside QueryContext / ExecContext:
+db.queryDuration.Record(ctx, elapsed, metricOptions(metricAttrs, err)...)
+```
+
+**Wrapping `QueryRowContext`** — `*sql.Row` only reveals the error when the caller calls
+`Scan` or `Err`, so the span must stay open until then. Return a custom `Row` wrapper
+instead of `*sql.Row`:
+
+```go
+type Row struct {
+    *sql.Row
+    span          trace.Span
+    ctx           context.Context
+    startTime     time.Time
+    queryDuration metric.Float64Histogram
+    metricAttrs   attribute.Set
+    once          sync.Once
+}
+
+func (r *Row) Scan(dest ...any) error {
+    err := r.Row.Scan(dest...)
+    r.once.Do(func() {
+        endSpan(r.ctx, r.span, err)
+        r.queryDuration.Record(r.ctx, time.Since(r.startTime).Seconds(), metricOptions(r.metricAttrs, err)...)
+    })
+    return err
+}
+```
+
+`Err` follows the same pattern. Use `sync.Once` so the span is always ended exactly once
+regardless of whether the caller checks `Err` before or after `Scan`. Without this wrapper,
+every `QueryRowContext` span always ends with status OK — even on a real error.
 
 ---
 
@@ -111,6 +155,11 @@ Wrap the existing `sql.DB` connection with `NewDB` and update the return type:
 -func Connect() (*sql.DB, error) {
 +func Connect() (*DB, error) {
 ```
+
+> [!NOTE]
+> `Connect()` now returns `*DB` instead of `*sql.DB`. Every handler and middleware
+> function that previously accepted `*sql.DB` must be updated to accept `*dbpkg.DB`.
+> Run `go build ./...` — the compiler will list every call site that needs changing.
 
 ---
 
@@ -144,20 +193,31 @@ const newUserCounter = meter.createCounter("auth.client.new_users", {
 ```js
 async function instrumentLogin(provider, fn) {
   const start = Date.now();
-  return tracer.startActiveSpan('login', async (span) => {
-    // ...
+  return tracer.startActiveSpan("login", async (span) => {
+    span.setAttribute("auth.operation.name", "login");
+    span.setAttribute("auth.provider.name", provider);
     try {
       const result = await fn();
-      if (result.outcome !== 'success') {
-        span.setAttribute('error.type', result.outcome);
+      if (result.outcome !== "success") {
+        span.setAttribute("error.type", result.outcome);
         span.setStatus({ code: SpanStatusCode.ERROR });
       }
-      // ...
-      loginDuration.record((Date.now() - start) / 1000, { 'auth.provider.name': provider, ... });
+      if (result.user) {
+        span.setAttribute("enduser.id", result.user.username);
+        span.setAttribute("enduser.pseudo.id", String(result.user.id));
+      }
+      const attrs = { "auth.provider.name": provider };
+      if (result.outcome !== "success") attrs["error.type"] = result.outcome;
+      loginDuration.record((Date.now() - start) / 1000, attrs);
+      if (result.isNewUser)
+        newUserCounter.add(1, { "auth.provider.name": provider });
       return result;
     } catch (err) {
       span.setStatus({ code: SpanStatusCode.ERROR });
-      loginDuration.record((Date.now() - start) / 1000, { ..., 'error.type': err.constructor?.name });
+      loginDuration.record((Date.now() - start) / 1000, {
+        "auth.provider.name": provider,
+        "error.type": err.constructor?.name ?? "_OTHER",
+      });
       throw err;
     } finally {
       span.end();
