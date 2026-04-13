@@ -58,7 +58,7 @@ In [otel-collector/config.yaml](https://github.com/grafana/grafanacon2026-opente
        receivers: [otlp]
 -      processors: [resourcedetection, filter/drop_frontend_noise, batch]
 +      processors: [resourcedetection, filter/drop_frontend_noise, transform/anonymize_enduser, batch]
-       exporters: [otlphttp]
+       exporters: [otlp_http]
 ```
 
 Place it after the filter — no point hashing attributes on spans that are about to be dropped.
@@ -107,7 +107,7 @@ Each rename copies the value to the new key then deletes the old one. The `where
        receivers: [otlp]
 -      processors: [resourcedetection, batch]
 +      processors: [resourcedetection, transform/normalize_log_http, batch]
-       exporters: [otlphttp]
+       exporters: [otlp_http]
 ```
 
 ---
