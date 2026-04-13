@@ -169,6 +169,9 @@ docker compose up --build
 make load  # runs continuously — keep it running in a separate terminal, Ctrl+C to stop
 ```
 
+> [!NOTE]
+> Traces may take up to a minute to appear after the services start. If queries return no results, wait a moment and try again.
+
 Run the TraceQL queries below — click each link to open Grafana Explore with the query pre-loaded, or paste the query manually into Grafana → **Explore** → **Tempo**.
 
 **Parts 1 & 4 — health-check spans dropped** — should return no results:

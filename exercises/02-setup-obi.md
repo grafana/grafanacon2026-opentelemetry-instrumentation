@@ -98,6 +98,9 @@ docker compose up --build
 make load  # runs continuously — keep it running in a separate terminal, Ctrl+C to stop
 ```
 
+> [!NOTE]
+> Metrics may take up to a minute to appear after the services start. If the panels are empty, wait a moment and refresh.
+
 Open <http://localhost:3000/d/red-metrics>. You should see request rate, error rate, and P95 latency panels for the `backend` and `frontend` services.
 
 Check out the [metrics drilldown](http://localhost:3000/a/grafana-metricsdrilldown-app/) — a great tool to see what metrics are available.

@@ -269,6 +269,9 @@ docker compose up --build
 make load  # runs continuously — keep it running in a separate terminal, Ctrl+C to stop
 ```
 
+> [!NOTE]
+> Traces and metrics may take up to a minute to appear after the services start. If panels are empty or spans are missing, wait a moment and refresh.
+
 Open Grafana at <http://localhost:3000/d/apm-dashboard>.
 
 ### Backend — DB spans

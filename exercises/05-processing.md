@@ -41,6 +41,9 @@ Replace `enduser.id` with the first 8 hex characters of its SHA-256 digest.
 In [otel-collector/config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/05-processing/otel-collector/config.yaml):
 
 ```diff
+   filter/drop_frontend_noise:
+     ...
+
 +  transform/anonymize_enduser:
 +    error_mode: ignore
 +    trace_statements:
@@ -85,6 +88,9 @@ Correct names make dashboards and queries consistent across all services.
 In [otel-collector/config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/05-processing/otel-collector/config.yaml):
 
 ```diff
+   transform/anonymize_enduser:
+     ...
+
 +  transform/normalize_log_http:
 +    error_mode: ignore
 +    log_statements:
@@ -118,6 +124,9 @@ Each rename copies the value to the new key then deletes the old one. The `where
 docker compose up --build
 make load  # runs continuously — keep it running in a separate terminal, Ctrl+C to stop
 ```
+
+> [!NOTE]
+> Traces and logs may take up to a minute to appear after the services start. If queries return no results, wait a moment and try again.
 
 **Part 1** — log in as `alice`, browse the app, then:
 

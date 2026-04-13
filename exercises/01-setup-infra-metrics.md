@@ -173,7 +173,10 @@ In a separate terminal, start the load generator (sends continuous traffic to th
 make load  # Ctrl+C to stop
 ```
 
-Open <http://localhost:3000/d/hostmetrics>. You should see CPU, memory, disk, and network panels populated within a few seconds.
+> [!NOTE]
+> Metrics may take up to a minute to appear after the services start. If the panels are empty, wait a moment and refresh.
+
+Open <http://localhost:3000/d/hostmetrics>. You should see CPU, memory, disk, and network panels populated.
 
 Check out the [metrics drilldown](http://localhost:3000/a/grafana-metricsdrilldown-app/) — a great tool to see what metrics are available.
 

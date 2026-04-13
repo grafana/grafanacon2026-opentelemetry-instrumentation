@@ -47,9 +47,13 @@ In this exercise you add OpenTelemetry SDK instrumentation to both the Go backen
 ### Step 1 — Add dependencies to [frontend/package.json](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/03-instrumenting-applications/frontend/package.json)
 
 ```diff
+# frontend/package.json
+   "dependencies": {
+     "winston": "^3.17.0",
 +    "@opentelemetry/api": "^1.9.0",
 +    "@opentelemetry/auto-instrumentations-node": "^0.57.0",
 +    "@opentelemetry/winston-transport": "^0.9.0",
+     "cookie-parser": "^1.4.7",
 ```
 
 - `auto-instrumentations-node` automatically instruments HTTP, DNS, and other Node.js built-ins.
@@ -61,16 +65,20 @@ In this exercise you add OpenTelemetry SDK instrumentation to both the Go backen
 > This step is optional. If you skip it, Winston logs will still appear in Loki as unstructured text, but they won't be correlated with traces via the OTel SDK.
 
 ```diff
+ const winston = require("winston");
 +const {
 +  OpenTelemetryTransportV3,
 +} = require("@opentelemetry/winston-transport");
 
  const logger = winston.createLogger({
-   transports: [
--    new winston.transports.Console({ level: "warn" }),
+   level: process.env.LOG_LEVEL || "info",
+   format: winston.format.json(),
+   defaultMeta: { service: "tapas-frontend" },
+-  transports: [new winston.transports.Console({ level: "warn" })],
++  transports: [
 +    new winston.transports.Console({ level: "warn" }),
 +    new OpenTelemetryTransportV3(),
-   ],
++  ],
  });
 ```
 
@@ -88,6 +96,9 @@ In this exercise you add OpenTelemetry SDK instrumentation to both the Go backen
 ```diff
    frontend:
      environment:
+       BACKEND_URL: http://backend:8080
+       PORT: "8080"
+       CHAOS_MODE: ${CHAOS_MODE:-}
 +      OTEL_SERVICE_NAME: frontend
 +      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
 +      OTEL_METRIC_EXPORT_INTERVAL: "5000"
@@ -105,7 +116,6 @@ cd backend
 go get go.opentelemetry.io/contrib/otelconf \
        go.opentelemetry.io/contrib/bridges/otelslog \
        go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux
-go mod tidy
 cd ..
 ```
 
@@ -204,11 +214,20 @@ Call `setupTelemetry` at startup and add the gorilla/mux HTTP middleware to crea
 +	r.Use(otelmux.Middleware("backend"))
 ```
 
+Now that all imports are in place, run `go mod tidy` to update the module graph:
+
+```bash
+cd backend && go mod tidy && cd ..
+```
+
 ### Step 9 — Set env vars in [docker-compose.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/03-instrumenting-applications/docker-compose.yaml)
 
 ```diff
    backend:
      environment:
+       DB_URL: postgres://postgres:postgres@db:5432/tapas?sslmode=disable
+       PORT: "8080"
+       CHAOS_MODE: ${CHAOS_MODE:-}
 +      OTEL_SERVICE_NAME: backend
 +      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
 +      OTEL_METRIC_EXPORT_INTERVAL: "5000"
@@ -236,6 +255,9 @@ git checkout origin/03-instrumenting-applications -- grafana/provisioning/alerti
 docker compose up --build
 make load  # runs continuously — keep it running in a separate terminal, Ctrl+C to stop
 ```
+
+> [!NOTE]
+> Traces, metrics, and logs may take up to a minute to appear after the services start. If the dashboard is empty, wait a moment and refresh.
 
 Open <http://localhost:3000/d/apm-dashboard>. You should see traces, metrics, and logs from both services.
 
