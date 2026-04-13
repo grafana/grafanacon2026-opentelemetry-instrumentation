@@ -2,14 +2,13 @@
 
 [← Exercise 03](03-instrumenting-applications.md) | [Exercise 05 →](05-processing.md)
 
-Drop noisy spans with a custom sampler, suppress instrumentation modules, enrich spans with application context, and filter at the collector when you can't touch application code.
+Drop noisy spans with an instrumentation filter, suppress instrumentation modules, enrich spans with application context, and filter at the collector when you can't touch application code.
 
 ## Contents
 
 - [What you will change](#what-you-will-change)
 - [Part 1 — Drop health-check spans](#part-1--drop-health-check-spans)
-  - [Step 1 — Create a custom sampler](#step-1--create-a-custom-sampler)
-  - [Step 2 — Wire the sampler into the TracerProvider](#step-2--wire-the-sampler-into-the-tracerprovider)
+  - [Step 1 — Filter health-check requests in the middleware](#step-1--filter-health-check-requests-in-the-middleware)
 - [Part 2 — Disable noisy auto-instrumentation (Node.js frontend)](#part-2--disable-noisy-auto-instrumentation-nodejs-frontend)
   - [Step 3 — Disable the `net` instrumentation](#step-3--disable-the-net-instrumentation)
 - [Part 3 — Enrich spans with user identity](#part-3--enrich-spans-with-user-identity)
@@ -23,8 +22,7 @@ Drop noisy spans with a custom sampler, suppress instrumentation modules, enrich
 
 | Service   | File                                                                                                                                                                  | What changes                                                                     |
 | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| backend   | [backend/sampler.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/backend/sampler.go)                 | New file — custom sampler that drops `/api/health` spans                         |
-| backend   | [backend/telemetry.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/backend/telemetry.go)             | Wire the custom sampler into the `TracerProvider`                                |
+| backend   | [backend/main.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/backend/main.go)                       | Add `WithFilter` to the `otelmux` middleware to skip `/api/health` spans         |
 | frontend  | [docker-compose.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/docker-compose.yaml)               | Disable the `net` auto-instrumentation module                                    |
 | frontend  | [frontend/server.js](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/frontend/server.js)                 | Set `enduser.id` and `enduser.pseudo.id` on every authenticated span             |
 | collector | [otel-collector/config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/otel-collector/config.yaml) | Filter processor that drops static-file and health-check spans from the frontend |
@@ -33,87 +31,29 @@ Drop noisy spans with a custom sampler, suppress instrumentation modules, enrich
 
 ## Part 1 — Drop health-check spans
 
-Health-check endpoints are polled constantly and generate a large volume of low-value spans. A custom sampler drops them before they leave the process.
+Health-check endpoints are polled constantly and generate a large volume of low-value spans. The cleanest way to suppress them is an instrumentation-level filter: no span object is allocated and no context is propagated, so there is zero overhead for the dropped requests.
 
-We implement this for the **Go backend**. The declarative `otelconf` config doesn't support custom Go samplers in YAML, so the TracerProvider is wired manually in code while metrics and logs continue to use the YAML config. The **Node.js frontend** uses zero-code auto-instrumentation, so there is nowhere to wire up a custom sampler. Two alternatives exist:
+The `otelmux` middleware accepts a `WithFilter` option — a predicate `func(*http.Request) bool` that returns `false` to skip tracing for a request entirely.
+
+For the **Node.js frontend**, which uses zero-code auto-instrumentation, there is no equivalent hook. Two alternatives exist:
 
 - **Disable the instrumentation entirely** — no span is created. See [Part 2](#part-2--disable-noisy-auto-instrumentation-nodejs-frontend).
 - **Filter in the collector** — see [Part 4](#part-4--filter-frontend-noise-in-the-collector). Only safe for leaf spans; dropping a parent breaks the trace tree.
 
-If you switch the frontend to a [code-based SDK setup](https://opentelemetry.io/docs/languages/js/sampling/) you can pass a custom `Sampler` to `NodeSDK` directly.
+### Step 1 — Filter health-check requests in the middleware
 
-### Step 1 — Create a custom sampler
-
-Create [backend/sampler.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/backend/sampler.go):
-
-```go
-package main
-
-import (
-	"go.opentelemetry.io/otel/trace"
-	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-)
-
-// dropHealthSampler drops HTTP server spans for the health endpoint
-// and delegates everything else to the wrapped sampler.
-type dropHealthSampler struct {
-	delegate sdktrace.Sampler
-}
-
-func (s dropHealthSampler) ShouldSample(p sdktrace.SamplingParameters) sdktrace.SamplingResult {
-	if p.Kind == trace.SpanKindServer {
-		for _, attr := range p.Attributes {
-			if attr.Key == "url.path" && attr.Value.AsString() == "/api/health" {
-				return sdktrace.SamplingResult{Decision: sdktrace.Drop}
-			}
-		}
-	}
-	return s.delegate.ShouldSample(p)
-}
-
-func (s dropHealthSampler) Description() string {
-	return "DropHealth"
-}
-```
-
-### Step 2 — Wire the sampler into the TracerProvider
-
-In [backend/telemetry.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/backend/telemetry.go), replace the single `otelconf.NewSDK` call with a hybrid setup — otelconf for metrics/logs/propagator, manual TracerProvider for the sampler:
+In [backend/main.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/backend/main.go), add a filter to the existing middleware line:
 
 ```diff
--	otel.SetTracerProvider(sdk.TracerProvider())
- 	otel.SetMeterProvider(sdk.MeterProvider())
- 	otel.SetTextMapPropagator(sdk.Propagator())
-+
-+	traceExp, err := otlptracehttp.New(ctx)
-+	if err != nil {
-+		return nil, err
-+	}
-+	tp := sdktrace.NewTracerProvider(
-+		sdktrace.WithBatcher(traceExp),
-+		sdktrace.WithSampler(dropHealthSampler{
-+			delegate: sdktrace.ParentBased(sdktrace.AlwaysSample()),
-+		}),
-+	)
-+	otel.SetTracerProvider(tp)
+-r.Use(otelmux.Middleware("backend"))
++r.Use(otelmux.Middleware("backend",
++    otelmux.WithFilter(func(r *http.Request) bool {
++        return r.URL.Path != "/api/health"
++    }),
++))
 ```
 
-Also update the shutdown to flush both providers:
-
-```diff
--	return sdk.Shutdown, nil
-+	return func(ctx context.Context) error {
-+		if err := tp.Shutdown(ctx); err != nil {
-+			return err
-+		}
-+		return sdk.Shutdown(ctx)
-+	}, nil
-```
-
-`ParentBased(AlwaysSample())` is the standard default: honour the sampling decision from an incoming `traceparent` header, sample everything without a parent. `dropHealthSampler` wraps it and intercepts health-check spans first.
-
-> [!NOTE]
-> Sampling happens before the span is created, so only attributes passed as **start options** (via `trace.WithAttributes` at span creation) are visible in `SamplingParameters.Attributes`. `otelmux` sets `url.path` as a start attribute, which is why this sampler can read it. For attributes added after span creation, use a `SpanProcessor` instead.
+The filter receives the raw `*http.Request` before any span is created. Returning `false` skips the span entirely — more efficient than a sampler (which still allocates the span, then drops it) or a `SpanProcessor` (which runs after the span ends and can only suppress export, not creation).
 
 ---
 
@@ -183,7 +123,7 @@ In [frontend/server.js](https://github.com/grafana/grafanacon2026-opentelemetry-
 The [filter processor](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.147.0/processor/filterprocessor) uses [OTTL](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.147.0/pkg/ottl) expressions to drop spans at the collector — useful when you can't modify application code.
 
 > [!WARNING]
-> **Only drop leaf spans.** The collector cannot rewrite `parent_span_id` references. Dropping a parent orphans its children, breaking the trace tree. Static file requests and health-check pings are safe targets; for anything else prefer disabling the module ([Part 2](#part-2--disable-noisy-auto-instrumentation-nodejs-frontend)) or a custom sampler ([Part 1](#part-1--drop-health-check-spans)).
+> **Only drop leaf spans.** The collector cannot rewrite `parent_span_id` references. Dropping a parent orphans its children, breaking the trace tree. Static file requests and health-check pings are safe targets; for anything else prefer disabling the module ([Part 2](#part-2--disable-noisy-auto-instrumentation-nodejs-frontend)) or an instrumentation filter ([Part 1](#part-1--drop-health-check-spans)).
 
 ### Step 5 — Add a filter processor
 
