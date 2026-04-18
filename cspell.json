@@ -33,6 +33,8 @@
     "hostfs",
     "resourcedetection",
     "traceparent",
+    "parentbased",
+    "traceidratio",
     "traceql",
     "logql",
     "semconv",

@@ -2,67 +2,37 @@
 
 [← Exercise 03](03-instrumenting-applications.md) | [Exercise 05 →](05-processing.md)
 
-Drop noisy spans with an instrumentation filter, suppress instrumentation modules, enrich spans with application context, and filter at the collector when you can't touch application code.
+Suppress noisy auto-instrumentation modules, enrich spans with application context, reduce trace volume with head-based sampling, and drop health-check spans with an instrumentation filter.
 
 ## Contents
 
 - [What you will change](#what-you-will-change)
-- [Part 1 — Drop health-check spans](#part-1--drop-health-check-spans)
-  - [Step 1 — Filter health-check requests in the middleware](#step-1--filter-health-check-requests-in-the-middleware)
-- [Part 2 — Disable noisy auto-instrumentation (Node.js frontend)](#part-2--disable-noisy-auto-instrumentation-nodejs-frontend)
-  - [Step 2 — Disable the `net` instrumentation](#step-2--disable-the-net-instrumentation)
-- [Part 3 — Enrich spans with user identity](#part-3--enrich-spans-with-user-identity)
-  - [Step 3 — Set `enduser.id` on incoming spans](#step-3--set-enduserid-on-incoming-spans)
-- [Part 4 — Filter frontend noise in the collector](#part-4--filter-frontend-noise-in-the-collector)
-  - [Step 4 — Add a filter processor](#step-4--add-a-filter-processor)
+- [Part 1 — Disable noisy auto-instrumentation (Node.js frontend)](#part-1--disable-noisy-auto-instrumentation-nodejs-frontend)
+  - [Step 1 — Disable the `net` instrumentation](#step-1--disable-the-net-instrumentation)
+- [Part 2 — Enrich spans with user identity](#part-2--enrich-spans-with-user-identity)
+  - [Step 2 — Set `enduser.id` on incoming spans](#step-2--set-enduserid-on-incoming-spans)
+- [Part 3 — Sample traces at the source](#part-3--sample-traces-at-the-source)
+  - [Step 3 — Sample 50% of frontend traces](#step-3--sample-50-of-frontend-traces)
+- [Part 4 — Drop health-check spans](#part-4--drop-health-check-spans)
+  - [Step 4 — Filter health-check requests in the middleware](#step-4--filter-health-check-requests-in-the-middleware)
 - [Verify](#verify)
 - [Catch up](#catch-up)
 
 ## What you will change
 
-| File                                                                                                                                                                  | Changes                                                                          |
-| --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| [backend/main.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/backend/main.go)                       | Add `WithFilter` to the `otelmux` middleware to skip `/api/health` spans         |
-| [docker-compose.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/docker-compose.yaml)               | Disable the `net` auto-instrumentation module                                    |
-| [frontend/server.js](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/frontend/server.js)                 | Set `enduser.id` and `enduser.pseudo.id` on every authenticated span             |
-| [otel-collector/config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/otel-collector/config.yaml) | Filter processor that drops static-file and health-check spans from the frontend |
+| File                                                                                                                                                    | Changes                                                              |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| [docker-compose.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/docker-compose.yaml) | Disable `net` auto-instrumentation and enable 50% head-based sampler |
+| [frontend/server.js](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/frontend/server.js)   | Set `enduser.id` and `enduser.pseudo.id` on every authenticated span |
+| [backend/main.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/backend/main.go)         | Add `WithFilter` to the `otelmux` middleware to skip `/api/health`   |
 
 ---
 
-## Part 1 — Drop health-check spans
-
-Health-check endpoints are polled constantly and generate a large volume of low-value spans. The cleanest way to suppress them is an instrumentation-level filter: no span object is allocated and no context is propagated, so there is zero overhead for the dropped requests.
-
-The `otelmux` middleware accepts a `WithFilter` option — a predicate `func(*http.Request) bool` that returns `false` to skip tracing for a request entirely.
-
-For the **Node.js frontend**, which uses zero-code auto-instrumentation, there is no equivalent hook. Two alternatives exist:
-
-- **Disable the instrumentation entirely** — no span is created. See [Part 2](#part-2--disable-noisy-auto-instrumentation-nodejs-frontend).
-- **Filter in the collector** — see [Part 4](#part-4--filter-frontend-noise-in-the-collector). Only safe for leaf spans; dropping a parent breaks the trace tree.
-
-### Step 1 — Filter health-check requests in the middleware
-
-In [backend/main.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/backend/main.go), add a filter to the existing middleware line:
-
-```diff
-// backend/main.go
--r.Use(otelmux.Middleware("backend"))
-+r.Use(otelmux.Middleware("backend",
-+    otelmux.WithFilter(func(r *http.Request) bool {
-+        return r.URL.Path != "/api/health"
-+    }),
-+))
-```
-
-The filter receives the raw `*http.Request` before any span is created. Returning `false` skips the span entirely — more efficient than a sampler (which still allocates the span, then drops it) or a `SpanProcessor` (which runs after the span ends and can only suppress export, not creation).
-
----
-
-## Part 2 — Disable noisy auto-instrumentation (Node.js frontend)
+## Part 1 — Disable noisy auto-instrumentation (Node.js frontend)
 
 The `net` module instrumentation produces low-level TCP spans that are rarely useful.
 
-### Step 2 — Disable the `net` instrumentation
+### Step 1 — Disable the `net` instrumentation
 
 In [docker-compose.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/docker-compose.yaml):
 
@@ -79,11 +49,11 @@ Accepts a comma-separated list, e.g. `net,dns`.
 
 ---
 
-## Part 3 — Enrich spans with user identity
+## Part 2 — Enrich spans with user identity
 
 Auto-instrumentation knows nothing about session state. Setting attributes on the active span in a middleware enriches every trace with the logged-in user.
 
-### Step 3 — Set `enduser.id` on incoming spans
+### Step 2 — Set `enduser.id` on incoming spans
 
 In [frontend/server.js](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/frontend/server.js), add the import and extend the existing auth middleware:
 
@@ -121,48 +91,61 @@ In [frontend/server.js](https://github.com/grafana/grafanacon2026-opentelemetry-
 
 ---
 
-## Part 4 — Filter frontend noise in the collector
+## Part 3 — Sample traces at the source
 
-The [filter processor](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.147.0/processor/filterprocessor) uses [OTTL](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.147.0/pkg/ottl) expressions to drop spans at the collector — useful when you can't modify application code.
+Filters and disabled modules target specific known-noisy spans. Sampling is the general-purpose volume knob: the SDK decides at trace start whether to record, and a head-based decision propagates to downstream services via the trace context, so the whole trace is kept or dropped together.
 
-> [!WARNING]
-> **Only drop leaf spans.** The collector cannot rewrite `parent_span_id` references. Dropping a parent orphans its children, breaking the trace tree. Static file requests and health-check pings are safe targets; for anything else prefer disabling the module ([Part 2](#part-2--disable-noisy-auto-instrumentation-nodejs-frontend)) or an instrumentation filter ([Part 1](#part-1--drop-health-check-spans)).
+### Step 3 — Sample 50% of frontend traces
 
-### Step 4 — Add a filter processor
-
-In [otel-collector/config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/otel-collector/config.yaml):
+In [docker-compose.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/docker-compose.yaml):
 
 ```diff
-# otel-collector/config.yaml
- processors:
-   resourcedetection:
-     detectors: [env, system]
-     timeout: 2s
-     override: false
-
-   batch:
-     timeout: 1s
-
-+  filter/drop_frontend_noise:
-+    error_mode: ignore
-+    traces:
-+      span:
-+        - >-
-+          resource.attributes["service.name"] == "frontend" and
-+          kind == SPAN_KIND_SERVER and
-+          (attributes["url.path"] == "/health" or
-+          IsMatch(attributes["url.path"], "\\.(css|js|ico|png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot|map)(\\?.*)?$"))
-
- service:
-   pipelines:
-     traces:
-       receivers: [otlp]
--      processors: [resourcedetection, batch]
-+      processors: [resourcedetection, filter/drop_frontend_noise, batch]
-       exporters: [otlp_http]
+# docker-compose.yaml
+   frontend:
+     environment:
+       OTEL_SERVICE_NAME: frontend
+       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+       OTEL_NODE_DISABLED_INSTRUMENTATIONS: net
++      OTEL_TRACES_SAMPLER: parentbased_traceidratio
++      OTEL_TRACES_SAMPLER_ARG: "0.5"
 ```
 
-The condition drops a span when all three are true: service is `frontend`, span kind is `SERVER`, and `url.path` is `/health` or a static file extension. The processor runs before `batch`, so filtered spans never reach the exporter.
+- `parentbased_traceidratio` honors an upstream sampling decision when one exists, and otherwise samples root spans at the configured ratio.
+- `OTEL_TRACES_SAMPLER_ARG=0.5` keeps 50% — a deterministic function of the trace ID, so the same trace is always kept or always dropped.
+
+Backend spans inherit the frontend's decision through the `traceparent` header. Spans the backend starts itself (its own health loop, background jobs) are governed by the backend's own sampler — unchanged here.
+
+> [!WARNING]
+> Head-based sampling drops errors at the same rate as normal traffic. When error traces matter more than steady-state traces, tail sampling in the collector is the right tool — it waits until the trace ends before deciding.
+
+---
+
+## Part 4 — Drop health-check spans
+
+Health-check endpoints are polled constantly and generate a large volume of low-value spans. The cleanest way to suppress them is an instrumentation-level filter: no span object is allocated and no context is propagated, so there is zero overhead for the dropped requests.
+
+The `otelmux` middleware accepts a `WithFilter` option — a predicate `func(*http.Request) bool` that returns `false` to skip tracing for a request entirely.
+
+For the **Node.js frontend**, which uses zero-code auto-instrumentation, there is no equivalent hook. Two alternatives exist:
+
+- **Disable the instrumentation entirely** — no span is created. See [Part 1](#part-1--disable-noisy-auto-instrumentation-nodejs-frontend).
+- **Filter in the collector** — see [Exercise 05](05-processing.md). Only safe for leaf spans; dropping a parent breaks the trace tree.
+
+### Step 4 — Filter health-check requests in the middleware
+
+In [backend/main.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/backend/main.go), add a filter to the existing middleware line:
+
+```diff
+// backend/main.go
+-r.Use(otelmux.Middleware("backend"))
++r.Use(otelmux.Middleware("backend",
++    otelmux.WithFilter(func(r *http.Request) bool {
++        return r.URL.Path != "/api/health"
++    }),
++))
+```
+
+The filter receives the raw `*http.Request` before any span is created. Returning `false` skips the span entirely — more efficient than a sampler (which still allocates the span, then drops it) or a `SpanProcessor` (which runs after the span ends and can only suppress export, not creation).
 
 ---
 
@@ -172,33 +155,35 @@ The condition drops a span when all three are true: service is `frontend`, span 
 docker compose up --build
 ```
 
-[Open all queries in Grafana](http://localhost:3000/explore?schemaVersion=1&orgId=1&panes=%7B%22abc%22%3A%7B%22datasource%22%3A%22tempo%22%2C%22queries%22%3A%5B%7B%22refId%22%3A%22A%22%2C%22queryType%22%3A%22traceql%22%2C%22query%22%3A%22%7B%20kind%20%3D%20server%20%26%26%20span.url.path%20%3D~%20%5C%22.%2Ahealth%5C%22%20%7D%22%7D%2C%7B%22refId%22%3A%22B%22%2C%22queryType%22%3A%22traceql%22%2C%22query%22%3A%22%7B%20resource.service.name%20%3D%20%5C%22frontend%5C%22%20%26%26%20name%20%3D%20%5C%22tcp.connect%5C%22%20%7D%22%7D%2C%7B%22refId%22%3A%22C%22%2C%22queryType%22%3A%22traceql%22%2C%22query%22%3A%22%7B%20resource.service.name%20%3D%20%5C%22frontend%5C%22%20%26%26%20kind%20%3D%20server%20%26%26%20span.enduser.id%20%21%3D%20nil%20%7D%22%7D%2C%7B%22refId%22%3A%22D%22%2C%22queryType%22%3A%22traceql%22%2C%22query%22%3A%22%7B%20resource.service.name%20%3D%20%5C%22frontend%5C%22%20%26%26%20kind%20%3D%20server%20%26%26%20span.url.path%20%3D~%20%5C%22.%2A%28css%7Cjs%7Cico%7Cpng%29%5C%22%20%7D%22%7D%5D%2C%22range%22%3A%7B%22from%22%3A%22now-1h%22%2C%22to%22%3A%22now%22%7D%7D%7D) — loads all four TraceQL queries below as A, B, C, D in a single Explore page. Or paste any individual query into Grafana → **Explore** → **Tempo**.
+Paste each query into Grafana → **Explore** → **Tempo**.
 
-**Query A — Parts 1 & 4, health-check spans dropped** — should return no results:
-
-```traceql
-{ kind = server && span.url.path =~ ".*health" }
-```
-
-> Note: the APM dashboard may still show a `health` operation — it's built from metrics, which are unaffected.
-
-**Query B — Part 2, `net` spans gone** — should return no results:
+**Query A — Part 1, `net` spans gone** — should return no results:
 
 ```traceql
 { resource.service.name = "frontend" && name = "tcp.connect" }
 ```
 
-**Query C — Part 3, user identity on spans** — log in as any user (e.g. `alice`), then:
+**Query B — Part 2, user identity on spans** — log in as any user (e.g. `alice`), then:
 
 ```traceql
 { resource.service.name = "frontend" && kind = server && span.enduser.id != nil }
 ```
 
-**Query D — Part 4, static file spans dropped** — should return no results:
+**Query C — Part 3, ~50% of frontend traces kept** — generate a steady load, pick a fixed time window, and compare the frontend server span count to a pre-sampler run:
 
 ```traceql
-{ resource.service.name = "frontend" && kind = server && span.url.path =~ ".*(css|js|ico|png)" }
+{ resource.service.name = "frontend" && kind = server }
 ```
+
+The count should land near half. Sampling is probabilistic, so don't expect an exact ratio from a small sample.
+
+**Query D — Part 4, backend health-check spans dropped** — should return no results:
+
+```traceql
+{ resource.service.name = "backend" && kind = server && span.url.path = "/api/health" }
+```
+
+> Note: the APM dashboard may still show a `health` operation — it's built from metrics, which are unaffected. The frontend's own `/health` spans will still appear until [Exercise 05](05-processing.md) filters them in the collector.
 
 Check out the [metrics drilldown](http://localhost:3000/a/grafana-metricsdrilldown-app/), [traces drilldown](http://localhost:3000/a/grafana-exploretraces-app/), and [logs drilldown](http://localhost:3000/a/grafana-lokiexplore-app/) — great tools to see what telemetry is available.
 
@@ -206,12 +191,10 @@ Check out the [metrics drilldown](http://localhost:3000/a/grafana-metricsdrilldo
 
 ## Learn more
 
-- [Transforming telemetry in the Collector](https://opentelemetry.io/docs/collector/transforming-telemetry/) — overview of filter and transform processors
-- [OTTL Playground](https://ottl.run/) — experiment with OTTL expressions interactively
 - [Node.js zero-code instrumentation](https://opentelemetry.io/docs/zero-code/js/) — `OTEL_NODE_DISABLED_INSTRUMENTATIONS` and related knobs
-- [JavaScript sampling](https://opentelemetry.io/docs/languages/js/sampling/) — another way to reduce span volume at the SDK level
+- [OTel sampling](https://opentelemetry.io/docs/concepts/sampling/) — head vs tail sampling, parent-based samplers, and the `OTEL_TRACES_SAMPLER` env vars
+- [JavaScript sampling](https://opentelemetry.io/docs/languages/js/sampling/) — programmatic sampler configuration in the Node SDK
 - [Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/) — including `enduser.*` attributes and the privacy considerations around them
-- [OpenTelemetry Collector Contrib](https://github.com/open-telemetry/opentelemetry-collector-contrib) — source of the `filter` processor
 
 ---
 
