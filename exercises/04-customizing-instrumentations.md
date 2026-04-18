@@ -116,7 +116,7 @@ In [docker-compose.yaml](https://github.com/grafana/grafanacon2026-opentelemetry
 Backend spans inherit the frontend's decision through the `traceparent` header. Spans the backend starts itself (its own health loop, background jobs) are governed by the backend's own sampler — unchanged here.
 
 > [!WARNING]
-> Head-based sampling is probabilistic and applied at the start of the trace — you can't change your mind later if the operation turns out to have an error or high latency. Check out [tail-based sampling](https://opentelemetry.io/docs/concepts/sampling/#tail-sampling) to learn more about sampling interesting traces.
+> Head-based sampling is probabilistic and applied at the start of the trace — you can't change your mind later if the operation turns out to have an error or high latency. [Exercise 05 — Part 3](05-processing.md#part-3--sample-smartly-in-the-collector) swaps this head sampler for tail-based sampling in the collector, where the decision can be made after the trace is complete.
 
 ---
 

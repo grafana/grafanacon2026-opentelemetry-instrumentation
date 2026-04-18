@@ -2,7 +2,7 @@
 
 [← Exercise 04](04-customizing-instrumentations.md) | [Exercise 06 →](06-manual-instrumentation.md)
 
-Filter noisy spans in the collector, then use OTTL transform processors to anonymize sensitive span attributes and normalize log fields to semantic conventions.
+Filter noisy spans in the collector, use an OTTL transform processor to anonymize sensitive span attributes, and swap head-based sampling for tail-based sampling that keeps every error and every slow trace.
 
 ## Contents
 
@@ -13,19 +13,21 @@ Filter noisy spans in the collector, then use OTTL transform processors to anony
 - [Part 2 — Anonymize `enduser.id`](#part-2--anonymize-enduserid)
   - [Step 3 — Add a transform processor for traces](#step-3--add-a-transform-processor-for-traces)
   - [Step 4 — Wire the processor into the traces pipeline](#step-4--wire-the-processor-into-the-traces-pipeline)
-- [Part 3 — Normalize HTTP log attributes](#part-3--normalize-http-log-attributes)
-  - [Step 5 — Add a transform processor for logs](#step-5--add-a-transform-processor-for-logs)
-  - [Step 6 — Wire the processor into the logs pipeline](#step-6--wire-the-processor-into-the-logs-pipeline)
+- [Part 3 — Sample smartly in the collector](#part-3--sample-smartly-in-the-collector)
+  - [Step 5 — Turn off head-based sampling](#step-5--turn-off-head-based-sampling)
+  - [Step 6 — Add a tail-sampling processor](#step-6--add-a-tail-sampling-processor)
+  - [Step 7 — Wire the processor into the traces pipeline](#step-7--wire-the-processor-into-the-traces-pipeline)
 - [Verify](#verify)
 - [Catch up](#catch-up)
 
 ## What you will change
 
-| File                                                                                                                                                | Changes                                                    |
-| --------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| [otel-collector/config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/05-processing/otel-collector/config.yaml) | Drop static-file and `/health` spans from the frontend     |
-| [otel-collector/config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/05-processing/otel-collector/config.yaml) | Replace `enduser.id` with a short irreversible hash        |
-| [otel-collector/config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/05-processing/otel-collector/config.yaml) | Rename custom log fields to stable HTTP semconv attributes |
+| File                                                                                                                                                | Changes                                                       |
+| --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| [otel-collector/config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/05-processing/otel-collector/config.yaml) | Drop static-file and `/health` spans from the frontend        |
+| [otel-collector/config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/05-processing/otel-collector/config.yaml) | Replace `enduser.id` with a short irreversible hash           |
+| [otel-collector/config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/05-processing/otel-collector/config.yaml) | Keep only error and slow traces via `tail_sampling`           |
+| [docker-compose.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/05-processing/docker-compose.yaml)               | Remove the frontend's head sampler so the collector sees 100% |
 
 ---
 
@@ -112,52 +114,68 @@ Place it after the filter — no point hashing attributes on spans that are abou
 
 ---
 
-## Part 3 — Normalize HTTP log attributes
+## Part 3 — Sample smartly in the collector
 
-Both services log requests with custom field names that don't match the [stable HTTP semantic conventions](https://opentelemetry.io/docs/specs/semconv/http/http-spans/):
+[Exercise 04](04-customizing-instrumentations.md#part-3--sample-traces-at-the-source) cut trace volume in half with a head-based sampler — the SDK flips a coin at trace start and keeps 50%. Fast and cheap, but blind: it makes the decision before the trace has errors or latency, so half of every incident is already on the floor by the time you go looking.
 
-| Emitted field | Stable semconv attribute    |
-| ------------- | --------------------------- |
-| `method`      | `http.request.method`       |
-| `path`        | `url.path`                  |
-| `status`      | `http.response.status_code` |
+The [tail sampling processor](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.147.0/processor/tailsamplingprocessor) defers the decision. The collector buffers every span of a trace, waits until the trace is complete, and then applies a set of policies — e.g. "keep if any span had an error" or "keep if the trace took longer than 1 s." Boring 200-OKs get dropped, interesting traces survive.
 
-Correct names make dashboards and queries consistent across all services.
+> [!NOTE]
+> Tail sampling needs the collector to see every trace, so the SDK has to stop dropping at head. In exchange, you keep 100% of errors and 100% of slow traces — the signal you actually care about.
 
-> [!TIP]
-> Fix attribute names at the source when you can — it keeps the collector config simple and the change visible in code. Use the collector when the source is off-limits: a third-party library, another team's service, or a codebase you can't modify.
+### Step 5 — Turn off head-based sampling
 
-### Step 5 — Add a transform processor for logs
+In [docker-compose.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/05-processing/docker-compose.yaml), remove the frontend's head sampler so every trace reaches the collector:
+
+```diff
+# docker-compose.yaml
+   frontend:
+     environment:
+       OTEL_NODE_DISABLED_INSTRUMENTATIONS: net
+-      OTEL_TRACES_SAMPLER: parentbased_traceidratio
+-      OTEL_TRACES_SAMPLER_ARG: "0.5"
+```
+
+The SDK now falls back to the default `parentbased_always_on` — every root span is sampled, and children inherit the decision. The backend's sampler is already at the default, so nothing changes there.
+
+### Step 6 — Add a tail-sampling processor
 
 In [otel-collector/config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/05-processing/otel-collector/config.yaml):
 
 ```diff
 # otel-collector/config.yaml
-+  transform/normalize_log_http:
-+    error_mode: ignore
-+    log_statements:
-+      - context: log
-+        statements:
-+          - set(attributes["http.request.method"], attributes["method"]) where attributes["method"] != nil
-+          - delete_key(attributes, "method")
-+          - set(attributes["url.path"], attributes["path"]) where attributes["path"] != nil
-+          - delete_key(attributes, "path")
-+          - set(attributes["http.response.status_code"], attributes["status"]) where attributes["status"] != nil
-+          - delete_key(attributes, "status")
++  tail_sampling:
++    decision_wait: 10s
++    num_traces: 50000
++    expected_new_traces_per_sec: 100
++    policies:
++      - name: errors
++        type: status_code
++        status_code:
++          status_codes: [ERROR]
++      - name: slow_traces
++        type: latency
++        latency:
++          threshold_ms: 1000
 ```
 
-Each rename copies the value to the new key then deletes the old one. The `where` guard skips logs without the field (e.g. error or startup messages).
+Top-level policies are OR-ed: a trace is kept if **any** policy matches. With the two above, every error trace and every trace over 1 s is kept; everything else is dropped outright — no probabilistic fallback.
 
-### Step 6 — Wire the processor into the logs pipeline
+- `decision_wait: 10s` — how long to buffer before deciding. Must exceed your slowest expected trace, or late spans arrive after the decision and get dropped.
+- `num_traces: 50000`, `expected_new_traces_per_sec: 100` — buffer sizing. Tail sampling trades RAM for smarter decisions; tune these for your workload.
+
+### Step 7 — Wire the processor into the traces pipeline
 
 ```diff
 # otel-collector/config.yaml
-     logs:
+     traces:
        receivers: [otlp]
--      processors: [resourcedetection, batch]
-+      processors: [resourcedetection, transform/normalize_log_http, batch]
+-      processors: [resourcedetection, filter/drop_frontend_noise, transform/anonymize_enduser, batch]
++      processors: [resourcedetection, filter/drop_frontend_noise, tail_sampling, transform/anonymize_enduser, batch]
        exporters: [otlp_http]
 ```
+
+Order matters: `filter` runs first (cheap drop — no point buffering spans we'll discard anyway), then `tail_sampling` makes the keep/drop call on the rest, and `transform/anonymize_enduser` runs **after** sampling so the SHA-256 hash only runs on traces that actually get exported.
 
 ---
 
@@ -167,6 +185,8 @@ Each rename copies the value to the new key then deletes the old one. The `where
 docker compose up --build
 ```
 
+Set `CHAOS_MODE=true` in your `.env` before starting — chaos mode produces the error and slow traces that tail sampling is meant to keep. Log in as `alice` and exercise the app (restaurant list, detail pages, search). Wait ~15 s after your last click so the `decision_wait` window closes and buffered traces can be emitted.
+
 **Part 1** — static-file and frontend `/health` spans should be gone:
 
 ```traceql
@@ -175,9 +195,7 @@ docker compose up --build
 
 Paste into Grafana → **Explore** → **Tempo**; the query should return no results.
 
-**Part 2** — log in as `alice`, browse the app, then:
-
-[Open in Grafana (Tempo)](http://localhost:3000/explore?schemaVersion=1&orgId=1&panes=%7B%22abc%22%3A%7B%22datasource%22%3A%22tempo%22%2C%22queries%22%3A%5B%7B%22refId%22%3A%22A%22%2C%22queryType%22%3A%22traceql%22%2C%22query%22%3A%22%7B%20resource.service.name%20%3D%20%5C%22frontend%5C%22%20%26%26%20span.enduser.id%20%21%3D%20nil%20%7D%22%7D%5D%2C%22range%22%3A%7B%22from%22%3A%22now-1h%22%2C%22to%22%3A%22now%22%7D%7D%7D)
+**Part 2** — [Open in Grafana (Tempo)](http://localhost:3000/explore?schemaVersion=1&orgId=1&panes=%7B%22abc%22%3A%7B%22datasource%22%3A%22tempo%22%2C%22queries%22%3A%5B%7B%22refId%22%3A%22A%22%2C%22queryType%22%3A%22traceql%22%2C%22query%22%3A%22%7B%20resource.service.name%20%3D%20%5C%22frontend%5C%22%20%26%26%20span.enduser.id%20%21%3D%20nil%20%7D%22%7D%5D%2C%22range%22%3A%7B%22from%22%3A%22now-1h%22%2C%22to%22%3A%22now%22%7D%7D%7D)
 
 ```traceql
 { resource.service.name = "frontend" && span.enduser.id != nil }
@@ -189,13 +207,21 @@ Paste into Grafana → **Explore** → **Tempo**; the query should return no res
 SHA-256("alice") → 2bd806c9...  (first 8 chars: 2bd806c9)
 ```
 
-**Part 3** — [Open in Grafana (Loki)](http://localhost:3000/explore?schemaVersion=1&orgId=1&panes=%7B%22abc%22%3A%7B%22datasource%22%3A%22loki%22%2C%22queries%22%3A%5B%7B%22refId%22%3A%22A%22%2C%22queryType%22%3A%22range%22%2C%22expr%22%3A%22%7Bservice_name%3D~%5C%22frontend%7Cbackend%5C%22%7D%20%7C%20http_request_method%20%21%3D%20%5C%22%5C%22%22%7D%5D%2C%22range%22%3A%7B%22from%22%3A%22now-1h%22%2C%22to%22%3A%22now%22%7D%7D%7D):
+**Part 3** — Tempo should now contain **only** error traces and slow traces, with nothing boring in between.
 
-```logql
-{service_name=~"frontend|backend"} | http_request_method != ""
+_Signal is present_ — errors and slow traces survived sampling — [Open in Grafana (Tempo)](http://localhost:3000/explore?schemaVersion=1&orgId=1&panes=%7B%22abc%22%3A%7B%22datasource%22%3A%22tempo%22%2C%22queries%22%3A%5B%7B%22refId%22%3A%22A%22%2C%22queryType%22%3A%22traceql%22%2C%22query%22%3A%22%7B%20status%20%3D%20error%20%7D%20%7C%7C%20%7B%20duration%20%3E%201s%20%7D%22%7D%5D%2C%22range%22%3A%7B%22from%22%3A%22now-1h%22%2C%22to%22%3A%22now%22%7D%7D%7D):
+
+```traceql
+{ status = error } || { duration > 1s }
 ```
 
-Request logs should carry `http.request.method`, `url.path`, and `http.response.status_code`.
+_Noise is gone_ — the interesting one — [Open in Grafana (Tempo)](http://localhost:3000/explore?schemaVersion=1&orgId=1&panes=%7B%22abc%22%3A%7B%22datasource%22%3A%22tempo%22%2C%22queries%22%3A%5B%7B%22refId%22%3A%22A%22%2C%22queryType%22%3A%22traceql%22%2C%22query%22%3A%22%7B%20kind%20%3D%20server%20%26%26%20status%20%3D%20ok%20%26%26%20duration%20%3C%20100ms%20%7D%22%7D%5D%2C%22range%22%3A%7B%22from%22%3A%22now-1h%22%2C%22to%22%3A%22now%22%7D%7D%7D):
+
+```traceql
+{ kind = server && status = ok && duration < 100ms }
+```
+
+Fast successful server spans should **not** appear. A handful of hits are acceptable if the query window crosses the pre-sampling period, or if a fast span belongs to a trace that tail sampling kept for a different reason (a sibling span exceeded the latency threshold — the whole trace is kept together).
 
 Check out the [metrics drilldown](http://localhost:3000/a/grafana-metricsdrilldown-app/), [traces drilldown](http://localhost:3000/a/grafana-exploretraces-app/), and [logs drilldown](http://localhost:3000/a/grafana-lokiexplore-app/) — great tools to see what telemetry is available.
 
@@ -205,8 +231,9 @@ Check out the [metrics drilldown](http://localhost:3000/a/grafana-metricsdrilldo
 
 - [Transforming telemetry in the Collector](https://opentelemetry.io/docs/collector/transforming-telemetry/) — guide to the transform processor and OTTL
 - [OTTL Playground](https://ottl.run/) — experiment with OTTL expressions interactively
-- [HTTP Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/http/http-spans/) — the stable names `method`/`path`/`status` were normalized to
-- [OpenTelemetry Collector Contrib](https://github.com/open-telemetry/opentelemetry-collector-contrib) — source of the `filter` and `transform` processors
+- [Tail Sampling Processor](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.147.0/processor/tailsamplingprocessor) — every policy type and tuning knob
+- [OTel sampling](https://opentelemetry.io/docs/concepts/sampling/) — head vs tail, tradeoffs, and when to use each
+- [OpenTelemetry Collector Contrib](https://github.com/open-telemetry/opentelemetry-collector-contrib) — source of the `filter`, `transform`, and `tail_sampling` processors
 
 ---
 
