@@ -155,21 +155,21 @@ The filter receives the raw `*http.Request` before any span is created. Returnin
 docker compose up --build
 ```
 
-Paste each query into Grafana → **Explore** → **Tempo**.
+Log in as any user (e.g. `alice`) first, so Query B has data.
 
-**Query A — Part 1, `net` spans gone** — should return no results:
+**Query A — Part 1, `net` spans gone** — should return no results — [Open in Grafana (Tempo)](http://localhost:3000/explore?schemaVersion=1&orgId=1&panes=%7B%22abc%22%3A%7B%22datasource%22%3A%22tempo%22%2C%22queries%22%3A%5B%7B%22refId%22%3A%22A%22%2C%22datasource%22%3A%7B%22type%22%3A%22tempo%22%2C%22uid%22%3A%22tempo%22%7D%2C%22queryType%22%3A%22traceql%22%2C%22limit%22%3A20%2C%22tableType%22%3A%22traces%22%2C%22metricsQueryType%22%3A%22range%22%2C%22serviceMapUseNativeHistograms%22%3Afalse%2C%22query%22%3A%22%7B%20resource.service.name%20%3D%20%5C%22frontend%5C%22%20%26%26%20name%20%3D%20%5C%22tcp.connect%5C%22%20%7D%22%7D%5D%2C%22range%22%3A%7B%22from%22%3A%22now-1h%22%2C%22to%22%3A%22now%22%7D%7D%7D):
 
 ```traceql
 { resource.service.name = "frontend" && name = "tcp.connect" }
 ```
 
-**Query B — Part 2, user identity on spans** — log in as any user (e.g. `alice`), then:
+**Query B — Part 2, user identity on spans** — [Open in Grafana (Tempo)](http://localhost:3000/explore?schemaVersion=1&orgId=1&panes=%7B%22abc%22%3A%7B%22datasource%22%3A%22tempo%22%2C%22queries%22%3A%5B%7B%22refId%22%3A%22B%22%2C%22datasource%22%3A%7B%22type%22%3A%22tempo%22%2C%22uid%22%3A%22tempo%22%7D%2C%22queryType%22%3A%22traceql%22%2C%22limit%22%3A20%2C%22tableType%22%3A%22traces%22%2C%22metricsQueryType%22%3A%22range%22%2C%22serviceMapUseNativeHistograms%22%3Afalse%2C%22query%22%3A%22%7B%20resource.service.name%20%3D%20%5C%22frontend%5C%22%20%26%26%20kind%20%3D%20server%20%26%26%20span.enduser.id%20%21%3D%20nil%20%7D%22%7D%5D%2C%22range%22%3A%7B%22from%22%3A%22now-1h%22%2C%22to%22%3A%22now%22%7D%7D%7D):
 
 ```traceql
 { resource.service.name = "frontend" && kind = server && span.enduser.id != nil }
 ```
 
-**Query C — Part 3, ~50% of frontend traces kept** — generate a steady load, pick a fixed time window, and compare the frontend server span count to a pre-sampler run:
+**Query C — Part 3, ~50% of frontend traces kept** — generate a steady load, pick a fixed time window, and compare the frontend server span count to a pre-sampler run — [Open in Grafana (Tempo)](http://localhost:3000/explore?schemaVersion=1&orgId=1&panes=%7B%22abc%22%3A%7B%22datasource%22%3A%22tempo%22%2C%22queries%22%3A%5B%7B%22refId%22%3A%22C%22%2C%22datasource%22%3A%7B%22type%22%3A%22tempo%22%2C%22uid%22%3A%22tempo%22%7D%2C%22queryType%22%3A%22traceql%22%2C%22limit%22%3A20%2C%22tableType%22%3A%22traces%22%2C%22metricsQueryType%22%3A%22range%22%2C%22serviceMapUseNativeHistograms%22%3Afalse%2C%22query%22%3A%22%7B%20resource.service.name%20%3D%20%5C%22frontend%5C%22%20%26%26%20kind%20%3D%20server%20%7D%22%7D%5D%2C%22range%22%3A%7B%22from%22%3A%22now-1h%22%2C%22to%22%3A%22now%22%7D%7D%7D):
 
 ```traceql
 { resource.service.name = "frontend" && kind = server }
@@ -177,13 +177,14 @@ Paste each query into Grafana → **Explore** → **Tempo**.
 
 The count should land near half. Sampling is probabilistic, so don't expect an exact ratio from a small sample.
 
-**Query D — Part 4, backend health-check spans dropped** — should return no results:
+**Query D — Part 4, backend health-check spans dropped** — should return no results — [Open in Grafana (Tempo)](http://localhost:3000/explore?schemaVersion=1&orgId=1&panes=%7B%22abc%22%3A%7B%22datasource%22%3A%22tempo%22%2C%22queries%22%3A%5B%7B%22refId%22%3A%22D%22%2C%22datasource%22%3A%7B%22type%22%3A%22tempo%22%2C%22uid%22%3A%22tempo%22%7D%2C%22queryType%22%3A%22traceql%22%2C%22limit%22%3A20%2C%22tableType%22%3A%22traces%22%2C%22metricsQueryType%22%3A%22range%22%2C%22serviceMapUseNativeHistograms%22%3Afalse%2C%22query%22%3A%22%7B%20resource.service.name%20%3D%20%5C%22backend%5C%22%20%26%26%20kind%20%3D%20server%20%26%26%20span.url.path%20%3D%20%5C%22%2Fapi%2Fhealth%5C%22%20%7D%22%7D%5D%2C%22range%22%3A%7B%22from%22%3A%22now-1h%22%2C%22to%22%3A%22now%22%7D%7D%7D):
 
 ```traceql
 { resource.service.name = "backend" && kind = server && span.url.path = "/api/health" }
 ```
 
-> Note: the APM dashboard may still show a `health` operation — it's built from metrics, which are unaffected. The frontend's own `/health` spans will still appear until [Exercise 05](05-processing.md) filters them in the collector.
+> [!NOTE]
+> The APM dashboard may still show a `health` operation — it's built from metrics, which are unaffected. The frontend's own `/health` spans will still appear until [Exercise 05](05-processing.md) filters them in the collector.
 
 Check out the [metrics drilldown](http://localhost:3000/a/grafana-metricsdrilldown-app/), [traces drilldown](http://localhost:3000/a/grafana-exploretraces-app/), and [logs drilldown](http://localhost:3000/a/grafana-lokiexplore-app/) — great tools to see what telemetry is available.
 

@@ -48,13 +48,14 @@ let loggedIn = false;
 function login() {
   const username = USERS[(exec.vu.idInTest - 1) % USERS.length];
   const res = http.post(`${BASE_URL}/login`, { username });
-  check(res, { 'login ok': r => r.status === 200 });
+  const ok = res.status === 200;
+  check(res, { 'login ok': () => ok });
+  return ok;
 }
 
 export default function () {
   if (!loggedIn) {
-    login();
-    loggedIn = true;
+    loggedIn = login();
   }
   const res = http.get(`${BASE_URL}${randomItem(PATHS)()}`);
   check(res, { 'status 200': r => r.status === 200 });
