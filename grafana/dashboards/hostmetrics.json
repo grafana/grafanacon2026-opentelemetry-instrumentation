@@ -1,0 +1,387 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "Host metrics - simplified",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "sizing": "auto"
+      },
+      "pluginVersion": "12.4.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "(1 - (sum by (host_name) (rate(system_cpu_time_seconds_total{state=\"idle\", host_name=\"${host}\"}[5m])) / sum by (host_name) (rate(system_cpu_time_seconds_total{host_name=\"${host}\"}[5m])))) * 100",
+          "legendFormat": "{{host_name}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Host CPU Utilization",
+      "type": "gauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "max": 1,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 0.8
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "sizing": "auto"
+      },
+      "pluginVersion": "12.4.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "editorMode": "code",
+          "expr": "sum by (host_name) (system_memory_usage_bytes{host_name=\"${host}\", state=\"used\"}) / sum by (host_name) (system_memory_usage_bytes{host_name=\"${host}\"})",
+          "legendFormat": "used",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Host Memory Utilization",
+      "type": "gauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "drawStyle": "line", "fillOpacity": 10 },
+          "max": 100,
+          "min": 0,
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "id": 6,
+      "options": {
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "container_cpu_utilization_ratio{host_name=\"${host}\", container_name=~\".+\", container_name!~\"obi|lgtm|otel-collector\"}",
+          "legendFormat": "{{container_name}}",
+          "refId": "A"
+        }
+      ],
+      "title": "CPU Utilization per Container",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "drawStyle": "line", "fillOpacity": 10 },
+          "max": 100,
+          "min": 0,
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "id": 7,
+      "options": {
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "container_memory_percent_ratio{host_name=\"${host}\", container_name=~\".+\", container_name!~\"obi|lgtm|otel-collector\"}",
+          "legendFormat": "{{container_name}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Memory Usage per Container",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 16 },
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "sum(system_network_connections{host_name=\"${host}\"})",
+          "legendFormat": "connections",
+          "refId": "A"
+        }
+      ],
+      "title": "Host Network Connections",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 16 },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "sum(increase(system_network_errors_total{host_name=\"${host}\"}[$__range]))",
+          "legendFormat": "errors",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "sum(increase(system_network_errors{host_name=\"${host}\"}[$__range]))",
+          "legendFormat": "errors",
+          "refId": "B"
+        }
+      ],
+      "title": "Host Network Errors",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 16 },
+      "id": 5,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "sum(system_processes_count{host_name=\"${host}\"})",
+          "legendFormat": "processes",
+          "refId": "A"
+        }
+      ],
+      "title": "Host Process Count",
+      "type": "stat"
+    }
+  ],
+  "preload": false,
+  "refresh": "",
+  "schemaVersion": 42,
+  "tags": [
+    "hostmetrics",
+    "otel"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {},
+        "includeAll": false,
+        "label": "datasource",
+        "name": "DS_PROMETHEUS",
+        "options": [],
+        "query": "prometheus",
+        "refresh": 1,
+        "regex": "",
+        "type": "datasource"
+      },
+      {
+        "current": {},
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${DS_PROMETHEUS}"
+        },
+        "definition": "query_result(sort_desc(last_over_time(system_cpu_load_average_1m[5m])))",
+        "includeAll": false,
+        "label": "Host",
+        "name": "host",
+        "options": [],
+        "query": {
+          "qryType": 3,
+          "query": "query_result(sort_desc(last_over_time(system_cpu_load_average_1m[5m])))",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "regex": "/host_name=\"([^\"]+)\"/",
+        "regexApplyTo": "value",
+        "sort": 0,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Host Metrics",
+  "uid": "hostmetrics",
+  "version": 1,
+  "weekStart": ""
+}

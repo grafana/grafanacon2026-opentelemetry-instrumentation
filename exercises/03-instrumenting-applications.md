@@ -109,7 +109,6 @@ cd backend
 go get go.opentelemetry.io/contrib/otelconf \
        go.opentelemetry.io/contrib/bridges/otelslog \
        go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux
-go mod tidy
 cd ..
 ```
 
@@ -264,11 +263,7 @@ Call `setupTelemetry` at startup and add the gorilla/mux HTTP middleware to crea
 
 ### Step 10 — Add the Grafana dashboard and alerts
 
-```bash
-# copies only these files from the exercise branch — does not switch branches
-git checkout origin/03-instrumenting-applications -- grafana/dashboards/apm-dashboard.json
-git checkout origin/03-instrumenting-applications -- grafana/provisioning/alerting/frontend-alerts.yaml
-```
+A pre-built APM dashboard lives in [grafana/dashboards/apm-dashboard.json](../grafana/dashboards/apm-dashboard.json) and frontend alerts in [grafana/provisioning/alerting/frontend-alerts.yaml](../grafana/provisioning/alerting/frontend-alerts.yaml). Both are automatically provisioned on startup.
 
 ---
 
@@ -281,6 +276,9 @@ docker compose up --build
 Open <http://localhost:3000/d/apm-dashboard>. You should see traces, metrics, and logs from both services.
 
 Check out the [metrics drilldown](http://localhost:3000/a/grafana-metricsdrilldown-app/), [traces drilldown](http://localhost:3000/a/grafana-exploretraces-app/), and [logs drilldown](http://localhost:3000/a/grafana-lokiexplore-app/) — great tools to see what telemetry is available.
+
+> [!NOTE]
+> **OBI backs off once the SDK loads.** Once the services load the OTel SDK, OBI detects it and stops producing metrics for them to avoid double-counting. The RED dashboard from exercise 02 may now look partially empty — in particular, outgoing calls from backend to database disappear, because the SDK doesn't instrument `database/sql` out of the box. HTTP and RPC panels keep working since the SDK covers those (`otelmux`, auto-instrumentations-node). DB instrumentation is added by hand in [exercise 06](06-manual-instrumentation.md); you can also pull in community libraries like [`otelsql`](https://github.com/XSAM/otelsql) instead of writing your own.
 
 ---
 

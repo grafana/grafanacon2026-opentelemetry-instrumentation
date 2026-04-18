@@ -156,12 +156,7 @@ Add the processor to [otel-collector/config.yaml](https://github.com/grafana/gra
 
 ### Step 5 — Add the Grafana dashboard
 
-A pre-built dashboard definition lives in [grafana/dashboards/hostmetrics.json](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/01-setup-infra-metrics/grafana/dashboards/hostmetrics.json). It is automatically provisioned on startup (no manual import needed).
-
-```bash
-# copies only this file from the exercise branch — does not switch branches
-git checkout origin/01-setup-infra-metrics -- grafana/dashboards/hostmetrics.json
-```
+A pre-built dashboard definition lives in [grafana/dashboards/hostmetrics.json](../grafana/dashboards/hostmetrics.json). It is automatically provisioned on startup (no manual import needed).
 
 ---
 

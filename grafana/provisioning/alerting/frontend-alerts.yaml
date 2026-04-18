@@ -1,0 +1,72 @@
+---
+apiVersion: 1
+groups:
+  - orgId: 1
+    name: frontend
+    folder: alerts
+    interval: 10s
+    rules:
+      - uid: frontend5xxratealert
+        title: Frontend5xxErrorRate
+        condition: threshold
+        data:
+          - refId: error_rate
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              editorMode: code
+              expr: |-
+                (
+                  sum(rate(http_server_request_duration_seconds_count{service_name="frontend", http_response_status_code=~"5..", http_route!~"/health|/favicon.ico"}[1m]))
+                  or vector(0)
+                )
+                /
+                sum(rate(http_server_request_duration_seconds_count{service_name="frontend", http_route!~"/health|/favicon.ico"}[1m]))
+              instant: true
+              interval: ""
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: error_rate
+          - refId: threshold
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0.01
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: error_rate
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: threshold
+              type: threshold
+        dashboardUid: apm-dashboard
+        panelId: 40
+        noDataState: NoData
+        execErrState: Error
+        for: 0s
+        annotations:
+          description: >-
+            Frontend 5xx error rate is above 1% for 1 minute.
+            Current value: {{ $values.error_rate.Value | humanizePercentage }}.
+          summary: High 5xx error rate for frontend service
+        labels:
+          service_name: frontend
+          severity: warning
+        isPaused: false

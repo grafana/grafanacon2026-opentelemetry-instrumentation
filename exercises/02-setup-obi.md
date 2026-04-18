@@ -90,12 +90,7 @@ discovery:
 
 ### Step 3 — Add the Grafana dashboard
 
-A pre-built RED metrics dashboard lives in [grafana/dashboards/red-metrics.json](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/02-setup-obi/grafana/dashboards/red-metrics.json). It is automatically provisioned on startup.
-
-```bash
-# copies only this file from the exercise branch — does not switch branches
-git checkout origin/02-setup-obi -- grafana/dashboards/red-metrics.json
-```
+A pre-built RED metrics dashboard lives in [grafana/dashboards/red-metrics.json](../grafana/dashboards/red-metrics.json). It is automatically provisioned on startup.
 
 ---
 
