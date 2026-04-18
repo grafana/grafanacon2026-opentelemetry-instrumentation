@@ -2,7 +2,7 @@ services:
 
   db:
     container_name: db
-    image: postgres:18-alpine@sha256:52098013b4b64a746626437d38afc03cabff6cdeb4d3d92e2342aa95f0ce56ea
+    image: postgres:18-alpine@sha256:4da1a4828be12604092fa55311276f08f9224a74a62dcb4708bd7439e2a03911
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -57,9 +57,10 @@ services:
 
   lgtm:
     container_name: lgtm
-    image: grafana/otel-lgtm:0.24.0@sha256:a7fbde2893d86ae4807701bc482736243e584eb90b5faa273d291ffff2a1374f
+    image: grafana/otel-lgtm:0.25.0@sha256:cc97e494d697f0b45997f91ad3b350fd85a5fe51afc41783ba5fcaebe19560cf
     ports:
       - "3000:3000"
+      - "3200:3200"
     volumes:
       - ./grafana/provisioning/dashboards/dashboards.yaml:/otel-lgtm/grafana/conf/provisioning/dashboards/hostmetrics.yaml:ro
       - ./grafana/dashboards:/otel-lgtm/grafana/dashboards:ro
@@ -67,7 +68,7 @@ services:
 
   otel-collector:
     container_name: otel-collector
-    image: otel/opentelemetry-collector-contrib:0.150.1@sha256:a516c26968aa1feb5e5fc0562e3338ea13755cb4f373603226bcc4e276374ad0
+    image: otel/opentelemetry-collector-contrib:0.149.0@sha256:0fba96233274f6d665ac8831ad99dfe6479a9a20459f6e2719c0d20945773b46
     user: "0"
     environment:
       OTEL_RESOURCE_ATTRIBUTES: deployment.environment.name=development
