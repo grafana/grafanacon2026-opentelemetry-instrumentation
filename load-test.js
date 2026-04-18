@@ -42,21 +42,19 @@ const PATHS = [
   () => `/favorites`,                                                      // 10% — auth-only
 ];
 
-// Per-VU login state. Each VU gets its own JS runtime, so this is per-VU.
-let loggedIn = false;
-
 function login() {
   const username = USERS[(exec.vu.idInTest - 1) % USERS.length];
-  const res = http.post(`${BASE_URL}/login`, { username });
-  const ok = res.status === 200;
-  check(res, { 'login ok': () => ok });
+  http.post(`${BASE_URL}/login`, { username });
+  // k6 clears session cookies between iterations, so we log in each iteration
+  // and verify the session cookie was actually set (a 200 error page from a
+  // transient backend hiccup still leaves the jar empty).
+  const ok = !!http.cookieJar().cookiesForURL(`${BASE_URL}/`).tapas_user;
+  check(null, { 'login ok': () => ok });
   return ok;
 }
 
 export default function () {
-  if (!loggedIn) {
-    loggedIn = login();
-  }
+  if (!login()) return;
   const res = http.get(`${BASE_URL}${randomItem(PATHS)()}`);
   check(res, { 'status 200': r => r.status === 200 });
 }
