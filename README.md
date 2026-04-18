@@ -128,10 +128,13 @@ A [load script](load-test.js) runs as part of `docker compose up`, generating co
 | DELETE | `/api/restaurants/:id`                  | Delete restaurant (admin) |
 | POST   | `/api/restaurants/:id/photos`           | Upload photo (admin)      |
 | GET    | `/api/restaurants/:id/photos/:photo_id` | Get photo                 |
+| DELETE | `/api/restaurants/:id/photos/:photo_id` | Delete photo (admin)      |
 | POST   | `/api/restaurants/:id/ratings`          | Submit rating (auth)      |
 | GET    | `/api/restaurants/:id/ratings`          | List ratings              |
 | GET    | `/api/users`                            | List users (admin)        |
-| GET    | `/api/users/:id/favorites`              | Get user favorites (auth) |
+| POST   | `/api/users`                            | Create user               |
+| GET    | `/api/users/by-username/:username`      | Look up user by username  |
+| GET    | `/api/users/me/favorites`               | Get user favorites (auth) |
 
 ### Auth
 
