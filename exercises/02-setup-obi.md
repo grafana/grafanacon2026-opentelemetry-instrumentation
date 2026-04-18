@@ -77,9 +77,9 @@ discovery:
     # to avoid OBI instrumenting ALL the processes in the host
     # (even the OTEL collector or the Docker services), we
     # explicitly enumerate here the containers of our tapas application
-    - container_name: db
     - container_name: backend
     - container_name: frontend
+    # - container_name: db
     # - container_name: lgtm
     # - container_name: otel-collector
 ```
