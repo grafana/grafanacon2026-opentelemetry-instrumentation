@@ -83,7 +83,7 @@ services:
       BASE_URL: ${BASE_URL:-http://frontend:8080}
     volumes:
       - ./load-test.js:/scripts/load-test.js:ro
-    command: ["run", "/scripts/load-test.js"]
+    command: ["run", "--quiet", "/scripts/load-test.js"]
 
 volumes:
   db_data:
