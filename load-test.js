@@ -1,5 +1,6 @@
 import http from 'k6/http';
 import { check } from 'k6';
+import exec from 'k6/execution';
 import { randomItem } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
 
 // Usage:
@@ -10,12 +11,16 @@ const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
 
 export const options = {
   vus: 4,
-  duration: '5m',
+  duration: '8760h',
   thresholds: {
     http_req_failed: ['rate<0.05'],
     http_req_duration: ['p(95)<2000'],
   },
 };
+
+// Seed users from db/init.sql — username-only auth, no passwords.
+// Admin is excluded to keep traffic shaped like regular-user browsing.
+const USERS = ['alice', 'bob', 'carla', 'david'];
 
 const RESTAURANTS  = ['f6081920', '07192a31', '182a3b42', '293b4c53', '3a4c5d64', '4b5d6e75', '5c6e7f86', '6d7f8097', '7e8091a8', '8f91a2b9'];
 const NEIGHBORHOODS = ['Gràcia', 'El Born', 'Barceloneta', 'Eixample', 'Poble Sec', 'Barri Gòtic'];
@@ -34,9 +39,23 @@ const PATHS = [
   () => `/search?q=${encodeURIComponent(randomItem(TERMS))}&min_rating=${randomItem(RATINGS)}`, // 10%
   () => `/restaurants/${randomItem(RESTAURANTS)}`,                         // 20%
   () => `/restaurants/${randomItem(RESTAURANTS)}`,
+  () => `/favorites`,                                                      // 10% — auth-only
 ];
 
+// Per-VU login state. Each VU gets its own JS runtime, so this is per-VU.
+let loggedIn = false;
+
+function login() {
+  const username = USERS[(exec.vu.idInTest - 1) % USERS.length];
+  const res = http.post(`${BASE_URL}/login`, { username });
+  check(res, { 'login ok': r => r.status === 200 });
+}
+
 export default function () {
+  if (!loggedIn) {
+    login();
+    loggedIn = true;
+  }
   const res = http.get(`${BASE_URL}${randomItem(PATHS)()}`);
   check(res, { 'status 200': r => r.status === 200 });
 }

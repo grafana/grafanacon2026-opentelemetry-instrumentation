@@ -5,30 +5,23 @@
 In this exercise you write OpenTelemetry instrumentation by hand — adding DB tracing to the
 backend and a login instrumentation shell on the frontend.
 
+Unlike the earlier exercises, this one touches ~17 files (including a new ~250-line Go file)
+and is meant to be read and **explored**, not typed out. The doc walks through the main
+design decisions; the full diff lives on GitHub.
+
+> [!TIP]
+> Open the [full diff for this exercise](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/compare/05-processing...06-manual-instrumentation)
+> in a second tab and read it alongside this walkthrough. To run the finished version
+> locally: `git checkout origin/06-manual-instrumentation`.
+
 ## Contents
 
-- [What you will change](#what-you-will-change)
 - [The instrumentation as a wrapper pattern](#the-instrumentation-as-a-wrapper-pattern)
 - [Part 1 — Backend DB (Go)](#part-1--backend-db-go)
-  - [Step 1 — Create instrumented.go](#step-1--create-backenddbinstrumentedgo)
-  - [Step 2 — Update db.go](#step-2--update-backenddbdbgo)
 - [Part 2 — Frontend Login (Node.js)](#part-2--frontend-login-nodejs)
-  - [Step 3 — Create otel-auth.js](#step-3--create-frontendotel-authjs)
-  - [Step 4 — Use instrumentLogin in server.js](#step-4--use-instrumentlogin-in-frontendserverjs)
 - [Tests](#tests)
 - [Verify](#verify)
 - [Catch up](#catch-up)
-
----
-
-## What you will change
-
-| File                                                                                                                                                            | Lang | What changes                                                                   |
-| --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ------------------------------------------------------------------------------ |
-| [backend/db/instrumented.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/06-manual-instrumentation/backend/db/instrumented.go) | Go   | New — `DB` wrapper with OTel instrumentation                                   |
-| [backend/db/db.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/06-manual-instrumentation/backend/db/db.go)                     | Go   | Wrap `sql.DB` with `NewDB`                                                     |
-| [frontend/otel-auth.js](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/06-manual-instrumentation/frontend/otel-auth.js)           | JS   | New — `instrumentLogin` wrapper with OTel span and metrics                     |
-| [frontend/server.js](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/06-manual-instrumentation/frontend/server.js)                 | JS   | OAuth callback uses `instrumentLogin`; local login records the metric directly |
 
 ---
 
@@ -52,209 +45,81 @@ pure login logic.
 
 ## Part 1 — Backend DB (Go)
 
-### Step 1 — Create [backend/db/instrumented.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/06-manual-instrumentation/backend/db/instrumented.go)
+[**→ Browse Part 1 on GitHub**](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/compare/05-processing...06-manual-instrumentation#files_bucket) — filter to `backend/`.
 
-**Starting a span** — use a low-cardinality summary (e.g. `SELECT restaurants`) as the span
-name and `db.query.summary` attribute, and include the full SQL as `db.query.text`:
+A new [`backend/db/instrumented.go`](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/06-manual-instrumentation/backend/db/instrumented.go) wraps `*sql.DB` with OTel. `Connect()` in
+[`db.go`](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/06-manual-instrumentation/backend/db/db.go) now returns the wrapper, so every handler and middleware that took a
+`*sql.DB` needs to accept `*dbpkg.DB` instead (`go build ./...` lists them all).
 
-```go
-func (db *DB) startSpan(ctx context.Context, query string) (context.Context, trace.Span, attribute.Set) {
-    summary := querySummary(query)   // e.g. "SELECT restaurants"
+The key pieces to look for in `instrumented.go`:
 
-    ctx, span := db.tracer.Start(ctx, summary,
-        trace.WithSpanKind(trace.SpanKindClient),
-        trace.WithAttributes(
-            semconv.DBQuerySummary(summary), // db.query.summary — low cardinality
-            semconv.DBQueryText(query),      // db.query.text    — full SQL
-            // plus server.address, server.port, db.namespace, db.system.name
-        ),
-    )
-    // ...
-}
-```
+- **`DB` struct embeds `*sql.DB`** — methods we don't override (e.g. `PingContext`) pass
+  through unchanged. We only wrap the three that execute queries: `QueryContext`,
+  `QueryRowContext`, and `ExecContext`.
 
-**Ending a span** — set error status and emit a log via slog correlated with the span:
+- **Span attributes follow [DB semantic conventions](https://opentelemetry.io/docs/specs/semconv/database/database-spans/).**
+  The span name and `db.query.summary` are a low-cardinality summary like `SELECT restaurants`
+  (computed by `querySummary` from the first word of the SQL and the table name). The full
+  SQL goes into `db.query.text`. `server.address`, `server.port`, and `db.namespace` are
+  parsed from the DSN once at startup and reused for every span.
 
-```go
-func endSpan(ctx context.Context, span trace.Span, err error) {
-    if err != nil && !errors.Is(err, sql.ErrNoRows) {
-        slog.ErrorContext(ctx, "database error",
-            slog.String("exception.type", fmt.Sprintf("%T", err)),
-            slog.String("exception.message", err.Error()),
-        )
-        span.SetStatus(codes.Error, err.Error())
-    }
-    span.End()
-}
-```
+- **The `*Row` wrapper is the non-obvious bit.** `*sql.Row` only reveals its error when
+  the caller calls `Scan` or `Err` — so if we end the span inside `QueryRowContext`, every
+  single-row query always ends with status OK, even on real errors. The fix: return a
+  custom `*Row` type that ends the span inside _its_ `Scan`/`Err` methods, guarded by
+  `sync.Once` so it ends exactly once.
 
-The slog bridge in [backend/telemetry.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/06-manual-instrumentation/backend/telemetry.go) exports the log and
-correlates it with the active trace via `ctx`.
+- **Errors are emitted as logs, not span events.** `endSpan` calls `slog.ErrorContext`,
+  which (via the slog→OTel bridge in [`backend/telemetry.go`](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/06-manual-instrumentation/backend/telemetry.go))
+  emits a log correlated to the active span. This follows the [exceptions-as-logs spec](https://opentelemetry.io/docs/specs/semconv/exceptions/exceptions-logs/).
+  `sql.ErrNoRows` is treated as a normal outcome and does not set error status.
 
-**Recording duration and errors on the histogram** — add a small helper that appends
-`error.type` to the metric attributes when a query fails, then use it in every method:
-
-```go
-func metricOptions(attrs attribute.Set, err error) []metric.RecordOption {
-    opts := []metric.RecordOption{metric.WithAttributeSet(attrs)}
-    if err != nil {
-        opts = append(opts, metric.WithAttributes(
-            attribute.String("error.type", fmt.Sprintf("%T", err)),
-        ))
-    }
-    return opts
-}
-
-// inside QueryContext / ExecContext:
-db.queryDuration.Record(ctx, elapsed, metricOptions(metricAttrs, err)...)
-```
-
-**Wrapping `QueryRowContext`** — `*sql.Row` only reveals the error when the caller calls
-`Scan` or `Err`, so the span must stay open until then. Return a custom `Row` wrapper
-instead of `*sql.Row`:
-
-```go
-type Row struct {
-    *sql.Row
-    span          trace.Span
-    ctx           context.Context
-    startTime     time.Time
-    queryDuration metric.Float64Histogram
-    metricAttrs   attribute.Set
-    once          sync.Once
-}
-
-func (r *Row) Scan(dest ...any) error {
-    err := r.Row.Scan(dest...)
-    r.once.Do(func() {
-        endSpan(r.ctx, r.span, err)
-        r.queryDuration.Record(r.ctx, time.Since(r.startTime).Seconds(), metricOptions(r.metricAttrs, err)...)
-    })
-    return err
-}
-```
-
-`Err` follows the same pattern. Use `sync.Once` so the span is always ended exactly once
-regardless of whether the caller checks `Err` before or after `Scan`. Without this wrapper,
-every `QueryRowContext` span always ends with status OK — even on a real error.
-
----
-
-### Step 2 — Update [backend/db/db.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/06-manual-instrumentation/backend/db/db.go)
-
-Wrap the existing `sql.DB` connection with `NewDB` and update the return type:
-
-```diff
-+db, err := NewDB(conn, dsn)
-+if err != nil {
-+    return nil, fmt.Errorf("init db instrumentation: %w", err)
-+}
--return conn, nil
-+return db, nil
-
--func Connect() (*sql.DB, error) {
-+func Connect() (*DB, error) {
-```
-
-> [!NOTE]
-> `Connect()` now returns `*DB` instead of `*sql.DB`. Every handler and middleware
-> function that previously accepted `*sql.DB` must be updated to accept `*dbpkg.DB`.
-> Run `go build ./...` — the compiler will list every call site that needs changing.
+- **Metric attributes get `error.type` on failure.** The `db.client.operation.duration`
+  histogram is recorded on every call; on error we append `error.type` so failures show
+  up as a distinct dimension on the same metric.
 
 ---
 
 ## Part 2 — Frontend Login (Node.js)
 
-### Step 3 — Create [frontend/otel-auth.js](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/06-manual-instrumentation/frontend/otel-auth.js)
+[**→ Browse Part 2 on GitHub**](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/compare/05-processing...06-manual-instrumentation#files_bucket) — filter to `frontend/`.
 
-**Initialize tracer, meter, and instruments** once at module load:
+A new [`frontend/otel-auth.js`](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/06-manual-instrumentation/frontend/otel-auth.js) exports `instrumentLogin(provider, fn)`.
+[`server.js`](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/06-manual-instrumentation/frontend/server.js) uses it to wrap the OAuth callback, and records the
+`auth.client.login.duration` metric directly in the plain-username login handler.
 
-```js
-const SCHEMA_URL = "https://opentelemetry.io/schemas/1.40.0";
-const tracer = trace.getTracer("tapas-auth", undefined, {
-  schemaUrl: SCHEMA_URL,
-});
-const meter = metrics.getMeter("tapas-auth", undefined, {
-  schemaUrl: SCHEMA_URL,
-});
+What to look for:
 
-const loginDuration = meter.createHistogram("auth.client.login.duration", {
-  description: "Duration of login attempts",
-  unit: "s",
-});
+- **`instrumentLogin` takes a pure async callback.** `fn` does the actual login work
+  and returns `{ outcome, user?, isNewUser? }` — it knows nothing about OTel. The
+  wrapper starts a span, maps `outcome` to attributes and span status, records the
+  histogram, and ends the span in `finally` so it always ends exactly once — even on
+  a thrown exception.
 
-const newUserCounter = meter.createCounter("auth.client.new_users", {
-  description: "New users registered via OAuth provider",
-});
-```
+- **Outcome-based error signalling.** Instead of `throw`-ing for business failures
+  (`user_not_found`, `state_mismatch`), the callback returns them as `outcome` strings.
+  The wrapper copies that onto `error.type` and sets span status ERROR. Thrown errors
+  (e.g. network failure) are a separate path — `error.type` becomes the exception
+  class name.
 
-**The wrapper** — start a span, delegate to `fn`, handle outcomes and errors:
+- **Plain-username login has no span, only a metric.** It is a single backend
+  round-trip, not a multi-step flow, so starting a span adds noise without insight.
+  The `loginDuration` histogram is exported from `otel-auth.js` and recorded directly
+  in the `POST /login` handler with `auth.provider.name = "local"`.
 
-```js
-async function instrumentLogin(provider, fn) {
-  const start = Date.now();
-  return tracer.startActiveSpan("login", async (span) => {
-    span.setAttribute("auth.operation.name", "login");
-    span.setAttribute("auth.provider.name", provider);
-    try {
-      const result = await fn();
-      if (result.outcome !== "success") {
-        span.setAttribute("error.type", result.outcome);
-        span.setStatus({ code: SpanStatusCode.ERROR });
-      }
-      if (result.user) {
-        span.setAttribute("enduser.id", result.user.username);
-        span.setAttribute("enduser.pseudo.id", String(result.user.id));
-      }
-      const attrs = { "auth.provider.name": provider };
-      if (result.outcome !== "success") attrs["error.type"] = result.outcome;
-      loginDuration.record((Date.now() - start) / 1000, attrs);
-      if (result.isNewUser)
-        newUserCounter.add(1, { "auth.provider.name": provider });
-      return result;
-    } catch (err) {
-      span.setStatus({ code: SpanStatusCode.ERROR });
-      loginDuration.record((Date.now() - start) / 1000, {
-        "auth.provider.name": provider,
-        "error.type": err.constructor?.name ?? "_OTHER",
-      });
-      throw err;
-    } finally {
-      span.end();
-    }
-  });
-}
-```
-
----
-
-### Step 4 — Use `instrumentLogin` in [frontend/server.js](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/06-manual-instrumentation/frontend/server.js)
-
-The OAuth callback wraps all business logic inside `instrumentLogin`:
-
-```js
-app.post('/auth/acme/callback', async (req, res) => {
-  const { username, state } = req.body;
-  try {
-    const result = await instrumentLogin('acme', async () => {
-      // ... actual login logic
-    });
-  }
-});
-```
+- **`enduser.id` and `enduser.pseudo.id`** are set on the login span when the user
+  is known, so you can search traces by user after the fact.
 
 ---
 
 ## Tests
 
-Both parts use **in-memory exporters** for fast, hermetic unit tests — no real database
-or trace backend required.
+Both parts use **in-memory exporters** for fast, hermetic unit tests — no real trace
+backend required.
 
-**Backend** — [tests/backend/instrumentation_test.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/06-manual-instrumentation/tests/backend/instrumentation_test.go)
-uses an in-memory span exporter against a real database.
+**Backend** — [tests/backend/instrumentation_test.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/06-manual-instrumentation/tests/backend/instrumentation_test.go) uses an in-memory span recorder against a real (ephemeral) database.
 
-**Frontend** — [tests/frontend/server.test.js](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/06-manual-instrumentation/tests/frontend/server.test.js)
-uses in-memory span and metric exporters.
+**Frontend** — [tests/frontend/otel-auth.test.js](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/06-manual-instrumentation/tests/frontend/otel-auth.test.js) uses in-memory span and metric exporters.
 
 ```bash
 make test
@@ -266,7 +131,6 @@ make test
 
 ```bash
 docker compose up --build
-make load  # runs continuously — keep it running in a separate terminal, Ctrl+C to stop
 ```
 
 > [!NOTE]
@@ -307,6 +171,14 @@ The span should have `error.type` = `user_not_found` and span status `ERROR`. Ch
 should appear on the histogram.
 
 Check out the [metrics drilldown](http://localhost:3000/a/grafana-metricsdrilldown-app/), [traces drilldown](http://localhost:3000/a/grafana-exploretraces-app/), and [logs drilldown](http://localhost:3000/a/grafana-lokiexplore-app/) — great tools to see what telemetry is available.
+
+---
+
+## Learn more
+
+- [Instrumentation concepts](https://opentelemetry.io/docs/concepts/instrumentation/) — when to reach for manual instrumentation vs. libraries
+- [Go language guide](https://opentelemetry.io/docs/languages/go/) — tracer, meter, and logger APIs used throughout Part 1
+- [Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/) — including [database](https://opentelemetry.io/docs/specs/semconv/database/) attributes (`db.query.summary`, `db.query.text`, `db.system.name`, …)
 
 ---
 

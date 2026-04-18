@@ -24,12 +24,6 @@ lsof -i :3000
 
 Stop the conflicting process, then re-run `docker compose up --build`.
 
-## `make load` — k6 not installed
-
-`make load` uses [k6](https://k6.io) for load generation. If k6 is not installed it falls back to running k6 in Docker automatically — no extra setup needed as long as Docker is running.
-
-To install k6 locally: <https://k6.io/docs/get-started/installation/>
-
 ## Running backend tests manually
 
 `make test-backend` sets the correct database URL automatically. If you run `go test` directly, set the URL explicitly:

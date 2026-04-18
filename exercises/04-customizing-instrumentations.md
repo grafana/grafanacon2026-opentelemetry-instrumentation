@@ -20,12 +20,12 @@ Drop noisy spans with an instrumentation filter, suppress instrumentation module
 
 ## What you will change
 
-| Service   | File                                                                                                                                                                  | What changes                                                                     |
-| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| backend   | [backend/main.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/backend/main.go)                       | Add `WithFilter` to the `otelmux` middleware to skip `/api/health` spans         |
-| frontend  | [docker-compose.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/docker-compose.yaml)               | Disable the `net` auto-instrumentation module                                    |
-| frontend  | [frontend/server.js](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/frontend/server.js)                 | Set `enduser.id` and `enduser.pseudo.id` on every authenticated span             |
-| collector | [otel-collector/config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/otel-collector/config.yaml) | Filter processor that drops static-file and health-check spans from the frontend |
+| File                                                                                                                                                                  | Changes                                                                          |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| [backend/main.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/backend/main.go)                       | Add `WithFilter` to the `otelmux` middleware to skip `/api/health` spans         |
+| [docker-compose.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/docker-compose.yaml)               | Disable the `net` auto-instrumentation module                                    |
+| [frontend/server.js](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/frontend/server.js)                 | Set `enduser.id` and `enduser.pseudo.id` on every authenticated span             |
+| [otel-collector/config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/otel-collector/config.yaml) | Filter processor that drops static-file and health-check spans from the frontend |
 
 ---
 
@@ -45,6 +45,7 @@ For the **Node.js frontend**, which uses zero-code auto-instrumentation, there i
 In [backend/main.go](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/backend/main.go), add a filter to the existing middleware line:
 
 ```diff
+// backend/main.go
 -r.Use(otelmux.Middleware("backend"))
 +r.Use(otelmux.Middleware("backend",
 +    otelmux.WithFilter(func(r *http.Request) bool {
@@ -66,6 +67,7 @@ The `net` module instrumentation produces low-level TCP spans that are rarely us
 In [docker-compose.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/docker-compose.yaml):
 
 ```diff
+# docker-compose.yaml
    frontend:
      environment:
        OTEL_SERVICE_NAME: frontend
@@ -86,6 +88,7 @@ Auto-instrumentation knows nothing about session state. Setting attributes on th
 In [frontend/server.js](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/frontend/server.js), add the import and extend the existing auth middleware:
 
 ```diff
+// frontend/server.js
 +const { trace } = require('@opentelemetry/api');
 
  app.use((req, res, next) => {
@@ -130,6 +133,7 @@ The [filter processor](https://github.com/open-telemetry/opentelemetry-collector
 In [otel-collector/config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/04-customizing-instrumentations/otel-collector/config.yaml):
 
 ```diff
+# otel-collector/config.yaml
  processors:
    resourcedetection:
      detectors: [env, system]
@@ -166,17 +170,11 @@ The condition drops a span when all three are true: service is `frontend`, span 
 
 ```bash
 docker compose up --build
-make load  # runs continuously — keep it running in a separate terminal, Ctrl+C to stop
 ```
 
-> [!NOTE]
-> Traces may take up to a minute to appear after the services start. If queries return no results, wait a moment and try again.
+[Open all queries in Grafana](http://localhost:3000/explore?schemaVersion=1&orgId=1&panes=%7B%22abc%22%3A%7B%22datasource%22%3A%22tempo%22%2C%22queries%22%3A%5B%7B%22refId%22%3A%22A%22%2C%22queryType%22%3A%22traceql%22%2C%22query%22%3A%22%7B%20kind%20%3D%20server%20%26%26%20span.url.path%20%3D~%20%5C%22.%2Ahealth%5C%22%20%7D%22%7D%2C%7B%22refId%22%3A%22B%22%2C%22queryType%22%3A%22traceql%22%2C%22query%22%3A%22%7B%20resource.service.name%20%3D%20%5C%22frontend%5C%22%20%26%26%20name%20%3D%20%5C%22tcp.connect%5C%22%20%7D%22%7D%2C%7B%22refId%22%3A%22C%22%2C%22queryType%22%3A%22traceql%22%2C%22query%22%3A%22%7B%20resource.service.name%20%3D%20%5C%22frontend%5C%22%20%26%26%20kind%20%3D%20server%20%26%26%20span.enduser.id%20%21%3D%20nil%20%7D%22%7D%2C%7B%22refId%22%3A%22D%22%2C%22queryType%22%3A%22traceql%22%2C%22query%22%3A%22%7B%20resource.service.name%20%3D%20%5C%22frontend%5C%22%20%26%26%20kind%20%3D%20server%20%26%26%20span.url.path%20%3D~%20%5C%22.%2A%28css%7Cjs%7Cico%7Cpng%29%5C%22%20%7D%22%7D%5D%2C%22range%22%3A%7B%22from%22%3A%22now-1h%22%2C%22to%22%3A%22now%22%7D%7D%7D) — loads all four TraceQL queries below as A, B, C, D in a single Explore page. Or paste any individual query into Grafana → **Explore** → **Tempo**.
 
-Run the TraceQL queries below — click each link to open Grafana Explore with the query pre-loaded, or paste the query manually into Grafana → **Explore** → **Tempo**.
-
-**Parts 1 & 4 — health-check spans dropped** — should return no results:
-
-[Open in Grafana](http://localhost:3000/explore?schemaVersion=1&orgId=1&panes=%7B%22abc%22%3A%7B%22datasource%22%3A%22tempo%22%2C%22queries%22%3A%5B%7B%22refId%22%3A%22A%22%2C%22queryType%22%3A%22traceql%22%2C%22query%22%3A%22%7B%20kind%20%3D%20server%20%26%26%20span.url.path%20%3D~%20%5C%22.%2Ahealth%5C%22%20%7D%22%7D%5D%2C%22range%22%3A%7B%22from%22%3A%22now-1h%22%2C%22to%22%3A%22now%22%7D%7D%7D)
+**Query A — Parts 1 & 4, health-check spans dropped** — should return no results:
 
 ```traceql
 { kind = server && span.url.path =~ ".*health" }
@@ -184,31 +182,36 @@ Run the TraceQL queries below — click each link to open Grafana Explore with t
 
 > Note: the APM dashboard may still show a `health` operation — it's built from metrics, which are unaffected.
 
-**Part 2 — `net` spans gone** — should return no results:
-
-[Open in Grafana](http://localhost:3000/explore?schemaVersion=1&orgId=1&panes=%7B%22abc%22%3A%7B%22datasource%22%3A%22tempo%22%2C%22queries%22%3A%5B%7B%22refId%22%3A%22A%22%2C%22queryType%22%3A%22traceql%22%2C%22query%22%3A%22%7B%20resource.service.name%20%3D%20%5C%22frontend%5C%22%20%26%26%20name%20%3D%20%5C%22tcp.connect%5C%22%20%7D%22%7D%5D%2C%22range%22%3A%7B%22from%22%3A%22now-1h%22%2C%22to%22%3A%22now%22%7D%7D%7D)
+**Query B — Part 2, `net` spans gone** — should return no results:
 
 ```traceql
 { resource.service.name = "frontend" && name = "tcp.connect" }
 ```
 
-**Part 3 — user identity on spans** — log in as any user (e.g. `alice`), then:
-
-[Open in Grafana](http://localhost:3000/explore?schemaVersion=1&orgId=1&panes=%7B%22abc%22%3A%7B%22datasource%22%3A%22tempo%22%2C%22queries%22%3A%5B%7B%22refId%22%3A%22A%22%2C%22queryType%22%3A%22traceql%22%2C%22query%22%3A%22%7B%20resource.service.name%20%3D%20%5C%22frontend%5C%22%20%26%26%20kind%20%3D%20server%20%26%26%20span.enduser.id%20%21%3D%20nil%20%7D%22%7D%5D%2C%22range%22%3A%7B%22from%22%3A%22now-1h%22%2C%22to%22%3A%22now%22%7D%7D%7D)
+**Query C — Part 3, user identity on spans** — log in as any user (e.g. `alice`), then:
 
 ```traceql
 { resource.service.name = "frontend" && kind = server && span.enduser.id != nil }
 ```
 
-**Part 4 — static file spans dropped** — should return no results:
-
-[Open in Grafana](http://localhost:3000/explore?schemaVersion=1&orgId=1&panes=%7B%22abc%22%3A%7B%22datasource%22%3A%22tempo%22%2C%22queries%22%3A%5B%7B%22refId%22%3A%22A%22%2C%22queryType%22%3A%22traceql%22%2C%22query%22%3A%22%7B%20resource.service.name%20%3D%20%5C%22frontend%5C%22%20%26%26%20kind%20%3D%20server%20%26%26%20span.url.path%20%3D~%20%5C%22.%2A%28css%7Cjs%7Cico%7Cpng%29%5C%22%20%7D%22%7D%5D%2C%22range%22%3A%7B%22from%22%3A%22now-1h%22%2C%22to%22%3A%22now%22%7D%7D%7D)
+**Query D — Part 4, static file spans dropped** — should return no results:
 
 ```traceql
 { resource.service.name = "frontend" && kind = server && span.url.path =~ ".*(css|js|ico|png)" }
 ```
 
 Check out the [metrics drilldown](http://localhost:3000/a/grafana-metricsdrilldown-app/), [traces drilldown](http://localhost:3000/a/grafana-exploretraces-app/), and [logs drilldown](http://localhost:3000/a/grafana-lokiexplore-app/) — great tools to see what telemetry is available.
+
+---
+
+## Learn more
+
+- [Transforming telemetry in the Collector](https://opentelemetry.io/docs/collector/transforming-telemetry/) — overview of filter and transform processors
+- [OTTL Playground](https://ottl.run/) — experiment with OTTL expressions interactively
+- [Node.js zero-code instrumentation](https://opentelemetry.io/docs/zero-code/js/) — `OTEL_NODE_DISABLED_INSTRUMENTATIONS` and related knobs
+- [JavaScript sampling](https://opentelemetry.io/docs/languages/js/sampling/) — another way to reduce span volume at the SDK level
+- [Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/) — including `enduser.*` attributes and the privacy considerations around them
+- [OpenTelemetry Collector Contrib](https://github.com/open-telemetry/opentelemetry-collector-contrib) — source of the `filter` processor
 
 ---
 

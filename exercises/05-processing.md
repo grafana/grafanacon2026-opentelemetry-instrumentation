@@ -18,10 +18,10 @@ Use OTTL transform processors in the collector to anonymize sensitive span attri
 
 ## What you will change
 
-| Service   | File                                                                                                                                                | What changes                                               |
-| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| collector | [otel-collector/config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/05-processing/otel-collector/config.yaml) | Replace `enduser.id` with a short irreversible hash        |
-| collector | [otel-collector/config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/05-processing/otel-collector/config.yaml) | Rename custom log fields to stable HTTP semconv attributes |
+| File                                                                                                                                                | Changes                                                    |
+| --------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| [otel-collector/config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/05-processing/otel-collector/config.yaml) | Replace `enduser.id` with a short irreversible hash        |
+| [otel-collector/config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/05-processing/otel-collector/config.yaml) | Rename custom log fields to stable HTTP semconv attributes |
 
 ---
 
@@ -41,9 +41,7 @@ Replace `enduser.id` with the first 8 hex characters of its SHA-256 digest.
 In [otel-collector/config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/05-processing/otel-collector/config.yaml):
 
 ```diff
-   filter/drop_frontend_noise:
-     ...
-
+# otel-collector/config.yaml
 +  transform/anonymize_enduser:
 +    error_mode: ignore
 +    trace_statements:
@@ -57,6 +55,7 @@ In [otel-collector/config.yaml](https://github.com/grafana/grafanacon2026-opente
 ### Step 2 — Wire the processor into the traces pipeline
 
 ```diff
+# otel-collector/config.yaml
      traces:
        receivers: [otlp]
 -      processors: [resourcedetection, filter/drop_frontend_noise, batch]
@@ -88,9 +87,7 @@ Correct names make dashboards and queries consistent across all services.
 In [otel-collector/config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/05-processing/otel-collector/config.yaml):
 
 ```diff
-   transform/anonymize_enduser:
-     ...
-
+# otel-collector/config.yaml
 +  transform/normalize_log_http:
 +    error_mode: ignore
 +    log_statements:
@@ -109,6 +106,7 @@ Each rename copies the value to the new key then deletes the old one. The `where
 ### Step 4 — Wire the processor into the logs pipeline
 
 ```diff
+# otel-collector/config.yaml
      logs:
        receivers: [otlp]
 -      processors: [resourcedetection, batch]
@@ -122,11 +120,7 @@ Each rename copies the value to the new key then deletes the old one. The `where
 
 ```bash
 docker compose up --build
-make load  # runs continuously — keep it running in a separate terminal, Ctrl+C to stop
 ```
-
-> [!NOTE]
-> Traces and logs may take up to a minute to appear after the services start. If queries return no results, wait a moment and try again.
 
 **Part 1** — log in as `alice`, browse the app, then:
 
@@ -151,6 +145,15 @@ SHA-256("alice") → 2bd806c9...  (first 8 chars: 2bd806c9)
 Request logs should carry `http.request.method`, `url.path`, and `http.response.status_code`.
 
 Check out the [metrics drilldown](http://localhost:3000/a/grafana-metricsdrilldown-app/), [traces drilldown](http://localhost:3000/a/grafana-exploretraces-app/), and [logs drilldown](http://localhost:3000/a/grafana-lokiexplore-app/) — great tools to see what telemetry is available.
+
+---
+
+## Learn more
+
+- [Transforming telemetry in the Collector](https://opentelemetry.io/docs/collector/transforming-telemetry/) — guide to the transform processor and OTTL
+- [OTTL Playground](https://ottl.run/) — experiment with OTTL expressions interactively
+- [HTTP Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/http/http-spans/) — the stable names `method`/`path`/`status` were normalized to
+- [OpenTelemetry Collector Contrib](https://github.com/open-telemetry/opentelemetry-collector-contrib) — source of the `transform` processor
 
 ---
 

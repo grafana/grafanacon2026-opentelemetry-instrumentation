@@ -51,7 +51,10 @@
     "Gòtic",
     "XSAM",
     "drilldown",
-    "Errorf"
+    "Errorf",
+    "strconv",
+    "Atoi",
+    "Getenv"
   ],
   "ignoreWords": []
 }

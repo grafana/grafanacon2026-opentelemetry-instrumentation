@@ -20,11 +20,11 @@ In this exercise you configure the OpenTelemetry Collector to scrape infrastruct
 
 ## What you will change
 
-| Service   | File                                                                                                                                                                           | What changes                                                                                                |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
-| collector | [otel-collector/config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/01-setup-infra-metrics/otel-collector/config.yaml)                   | Add `hostmetrics` and `docker_stats` receivers; add `resourcedetection` processor; wire them into pipelines |
-| collector | [docker-compose.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/01-setup-infra-metrics/docker-compose.yaml)                                 | Mount the Docker socket and host filesystem into the collector container                                    |
-| —         | [grafana/dashboards/hostmetrics.json](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/01-setup-infra-metrics/grafana/dashboards/hostmetrics.json) | New dashboard — CPU, memory, disk, network for the host and per-container CPU/memory                        |
+| File                                                                                                                                                                           | Changes                                                                                                     |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| [otel-collector/config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/01-setup-infra-metrics/otel-collector/config.yaml)                   | Add `hostmetrics` and `docker_stats` receivers; add `resourcedetection` processor; wire them into pipelines |
+| [docker-compose.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/01-setup-infra-metrics/docker-compose.yaml)                                 | Mount the Docker socket and host filesystem into the collector container                                    |
+| [grafana/dashboards/hostmetrics.json](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/01-setup-infra-metrics/grafana/dashboards/hostmetrics.json) | New dashboard — CPU, memory, disk, network for the host and per-container CPU/memory                        |
 
 ---
 
@@ -58,6 +58,7 @@ Add the following receivers to [otel-collector/config.yaml](https://github.com/g
 Scrapes per-container CPU, memory, network, and block I/O metrics every 10 s via the Docker socket.
 
 ```diff
+# otel-collector/config.yaml
  receivers:
    otlp:
      protocols:
@@ -76,6 +77,7 @@ Scrapes per-container CPU, memory, network, and block I/O metrics every 10 s via
 Scrapes CPU, disk, filesystem, memory, network, paging, and process metrics from the host every 10 s. `root_path` points to the bind-mounted host filesystem.
 
 ```diff
+# otel-collector/config.yaml
  receivers:
    ...
 +  hostmetrics:
@@ -113,6 +115,7 @@ Enriches every span, metric, and log with resource attributes detected at startu
 Add the processor to [otel-collector/config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/01-setup-infra-metrics/otel-collector/config.yaml):
 
 ```diff
+# otel-collector/config.yaml
  processors:
 +  resourcedetection:
 +    detectors: [env, system]
@@ -126,6 +129,7 @@ Add the processor to [otel-collector/config.yaml](https://github.com/grafana/gra
 ### Step 4 — Wire everything into the pipelines
 
 ```diff
+# otel-collector/config.yaml
  service:
    pipelines:
      traces:
@@ -167,18 +171,16 @@ git checkout origin/01-setup-infra-metrics -- grafana/dashboards/hostmetrics.jso
 docker compose up --build
 ```
 
-In a separate terminal, start the load generator (sends continuous traffic to the app so panels stay active):
-
-```bash
-make load  # Ctrl+C to stop
-```
-
-> [!NOTE]
-> Metrics may take up to a minute to appear after the services start. If the panels are empty, wait a moment and refresh.
-
-Open <http://localhost:3000/d/hostmetrics>. You should see CPU, memory, disk, and network panels populated.
+Open <http://localhost:3000/d/hostmetrics>. You should see CPU, memory, disk, and network panels populated within a few seconds.
 
 Check out the [metrics drilldown](http://localhost:3000/a/grafana-metricsdrilldown-app/) — a great tool to see what metrics are available.
+
+---
+
+## Learn more
+
+- [OpenTelemetry Collector Contrib](https://github.com/open-telemetry/opentelemetry-collector-contrib) — source of the `hostmetrics`, `docker_stats`, and `resourcedetection` components
+- [Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/) — naming for host, container, and system resource attributes
 
 ---
 

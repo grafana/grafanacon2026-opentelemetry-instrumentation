@@ -114,11 +114,7 @@ This starts the database in Docker, runs the Go backend tests against it, and ru
 
 ### Load Generation
 
-```bash
-make load
-```
-
-Runs a [load script](load-test.js) that generates traffic against the running application.
+A [load script](load-test.js) runs as part of `docker compose up`, generating continuous traffic against the running application.
 
 ### API Endpoints
 
@@ -183,6 +179,7 @@ Set `CHAOS_MODE=true` in the `.env` file to enable intentional failures across b
 
 ### Language-specific Guides (used in this workshop)
 
+- **All languages**: [opentelemetry.io/docs/languages](https://opentelemetry.io/docs/languages/) — landing page with per-language SDK and API guides
 - **Go**: [opentelemetry.io/docs/languages/go](https://opentelemetry.io/docs/languages/go/)
 - **JavaScript (Node.js zero-code)**: [opentelemetry.io/docs/zero-code/js](https://opentelemetry.io/docs/zero-code/js/)
 - **JavaScript sampling**: [opentelemetry.io/docs/languages/js/sampling](https://opentelemetry.io/docs/languages/js/sampling/)

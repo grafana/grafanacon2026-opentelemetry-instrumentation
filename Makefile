@@ -11,11 +11,7 @@ test-frontend:
 	cd tests/frontend && npm test
 
 load:
-	@if which k6 > /dev/null 2>&1; then \
-	  k6 run load-test.js; \
-	else \
-	  docker run --rm -i --network host -v "$(PWD):/scripts" grafana/k6 run /scripts/load-test.js; \
-	fi
+	docker compose run --rm load-test
 
 spell:
 	npx cspell "**/*.md" "**/*.go" "**/*.js"

@@ -76,5 +76,14 @@ services:
     depends_on:
       - lgtm
 
+  load-test:
+    container_name: load-test
+    image: grafana/k6
+    environment:
+      BASE_URL: ${BASE_URL:-http://frontend:8080}
+    volumes:
+      - ./load-test.js:/scripts/load-test.js:ro
+    command: ["run", "/scripts/load-test.js"]
+
 volumes:
   db_data:

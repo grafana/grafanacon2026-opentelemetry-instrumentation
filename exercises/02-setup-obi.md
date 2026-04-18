@@ -20,11 +20,11 @@ In this exercise you add [OBI](https://github.com/open-telemetry/opentelemetry-e
 
 ## What you will change
 
-| Service | File                                                                                                                                                                 | What changes                                                                     |
-| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| —       | [docker-compose.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/02-setup-obi/docker-compose.yaml)                                 | Add the `obi` service                                                            |
-| obi     | [obi/obi-config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/02-setup-obi/obi/obi-config.yaml)                                 | New OBI config — targets the app containers and exports metrics to the collector |
-| —       | [grafana/dashboards/red-metrics.json](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/02-setup-obi/grafana/dashboards/red-metrics.json) | New RED metrics dashboard — request rate, error rate, and latency per service    |
+| File                                                                                                                                                                 | Changes                                                                          |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| [docker-compose.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/02-setup-obi/docker-compose.yaml)                                 | Add the `obi` service                                                            |
+| [obi/obi-config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/02-setup-obi/obi/obi-config.yaml)                                 | New OBI config — targets the app containers and exports metrics to the collector |
+| [grafana/dashboards/red-metrics.json](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/02-setup-obi/grafana/dashboards/red-metrics.json) | New RED metrics dashboard — request rate, error rate, and latency per service    |
 
 ---
 
@@ -37,6 +37,10 @@ OBI needs to run as a privileged container with `pid: host` so it can observe al
 In [docker-compose.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/02-setup-obi/docker-compose.yaml):
 
 ```diff
+# docker-compose.yaml
+   otel-collector:
+     ...
+
 +  obi:
 +    container_name: obi
 +    image: otel/ebpf-instrument:v0.6.0
@@ -53,6 +57,9 @@ In [docker-compose.yaml](https://github.com/grafana/grafanacon2026-opentelemetry
 +      OTEL_EBPF_CONFIG_PATH: /etc/obi/config.yaml
 +    depends_on:
 +      - otel-collector
++
+ volumes:
+   db_data:
 ```
 
 ### Step 2 — Create the OBI config
@@ -60,6 +67,7 @@ In [docker-compose.yaml](https://github.com/grafana/grafanacon2026-opentelemetry
 Create [obi/obi-config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/02-setup-obi/obi/obi-config.yaml). The `discovery.instrument` list scopes OBI to only the app containers — without it OBI would instrument every process on the host, including the collector itself.
 
 ```yaml
+# obi/obi-config.yaml
 otel_metrics_export:
   protocol: http/protobuf
   endpoint: http://otel-collector:4318
@@ -95,7 +103,6 @@ git checkout origin/02-setup-obi -- grafana/dashboards/red-metrics.json
 
 ```bash
 docker compose up --build
-make load  # runs continuously — keep it running in a separate terminal, Ctrl+C to stop
 ```
 
 > [!NOTE]
@@ -104,6 +111,13 @@ make load  # runs continuously — keep it running in a separate terminal, Ctrl+
 Open <http://localhost:3000/d/red-metrics>. You should see request rate, error rate, and P95 latency panels for the `backend` and `frontend` services.
 
 Check out the [metrics drilldown](http://localhost:3000/a/grafana-metricsdrilldown-app/) — a great tool to see what metrics are available.
+
+---
+
+## Learn more
+
+- [OBI configuration reference](https://opentelemetry.io/docs/zero-code/obi/configure/) — full list of OBI config options
+- [OpenTelemetry eBPF Instrumentation (OBI)](https://github.com/open-telemetry/opentelemetry-ebpf-instrumentation) — source repo and release notes
 
 ---
 
