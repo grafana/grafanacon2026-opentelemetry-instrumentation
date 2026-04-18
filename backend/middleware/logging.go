@@ -22,10 +22,10 @@ func Logging(next http.Handler) http.Handler {
 		start := time.Now()
 		next.ServeHTTP(rec, r)
 		slog.InfoContext(r.Context(), "request",
-			"method", r.Method,
-			"path", r.URL.Path,
-			"status", rec.status,
-			"duration_ms", time.Since(start).Milliseconds(),
+			"http.request.method", r.Method,
+			"url.path", r.URL.Path,
+			"http.response.status_code", rec.status,
+			"http.server.request.duration", time.Since(start).Seconds(),
 		)
 	})
 }

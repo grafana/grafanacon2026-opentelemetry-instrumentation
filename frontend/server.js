@@ -97,11 +97,14 @@ async function backendDelete(path, headers = {}) {
 
 // Middleware: log incoming requests
 app.use((req, res, next) => {
+  const start = process.hrtime.bigint();
   res.on("finish", () => {
+    const durationSec = Number(process.hrtime.bigint() - start) / 1e9;
     logger.info("request", {
-      method: req.method,
-      path: req.path,
-      status: res.statusCode,
+      "http.request.method": req.method,
+      "url.path": req.path,
+      "http.response.status_code": res.statusCode,
+      "http.server.request.duration": durationSec,
     });
   });
   next();
