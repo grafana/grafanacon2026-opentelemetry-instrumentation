@@ -12,8 +12,7 @@
     "cookie-parser": "^1.4.7",
     "ejs": "^5.0.0",
     "express": "^5.0.0",
-    "express-ejs-layouts": "^2.5.1",
-    "node-fetch": "^3.0.0"
+    "express-ejs-layouts": "^2.5.1"
   },
   "devDependencies": {
     "jest": "30.3.0",

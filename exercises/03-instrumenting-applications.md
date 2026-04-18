@@ -155,8 +155,8 @@ logger_provider:
 
 propagator:
   composite:
-    - tracecontext
-    - baggage
+    - tracecontext:
+    - baggage:
 ```
 
 `${VAR:-default}` substitution is supported throughout the config file — `OTEL_SERVICE_NAME` and `OTEL_EXPORTER_OTLP_ENDPOINT` are read from the environment, with fallbacks if not set.
@@ -213,6 +213,22 @@ Call `setupTelemetry` at startup and add the gorilla/mux HTTP middleware to crea
 
 ```diff
 // backend/main.go
+ import (
++	"context"
+ 	"fmt"
+ 	"log"
+ 	"log/slog"
+ 	"net/http"
+ 	"os"
+
+ 	"github.com/gorilla/mux"
+ 	"github.com/rs/cors"
+ 	dbpkg "github.com/workshop/tapas-backend/db"
+ 	"github.com/workshop/tapas-backend/handlers"
+ 	"github.com/workshop/tapas-backend/middleware"
++	"go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux"
+ )
+ ...
 -	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelWarn})))
 +	// Fallback logger (console) — replaced by OTel bridge if telemetry setup succeeds.
 +	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug})))
