@@ -39,7 +39,7 @@ pure login logic.
 > Manual instrumentation is tedious and error-prone. Only do it when there is no high-quality
 > library available, or when you have specific requirements a library cannot meet. In the backend
 > case there is no library that follows OTel DB semantic conventions precisely enough;
-> in the frontend case there is no library at all.
+> in the frontend case it wraps custom application auth flow.
 
 ---
 
