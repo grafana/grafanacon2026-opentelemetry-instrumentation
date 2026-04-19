@@ -13,7 +13,7 @@ Filter noisy spans in the collector, use an OTTL transform processor to anonymiz
 - [Part 2 — Anonymize `enduser.id`](#part-2--anonymize-enduserid)
   - [Step 3 — Add a transform processor for traces](#step-3--add-a-transform-processor-for-traces)
   - [Step 4 — Wire the processor into the traces pipeline](#step-4--wire-the-processor-into-the-traces-pipeline)
-- [Part 3 — Sample smartly in the collector](#part-3--sample-smartly-in-the-collector)
+- [Part 3 — Tail-based sampling in the collector](#part-3--tail-based-sampling-in-the-collector)
   - [Step 5 — Turn off head-based sampling](#step-5--turn-off-head-based-sampling)
   - [Step 6 — Add a tail-sampling processor](#step-6--add-a-tail-sampling-processor)
   - [Step 7 — Wire the processor into the traces pipeline](#step-7--wire-the-processor-into-the-traces-pipeline)
@@ -33,7 +33,7 @@ Filter noisy spans in the collector, use an OTTL transform processor to anonymiz
 
 ## Part 1 — Filter frontend noise in the collector
 
-[Exercise 04](04-customizing-instrumentations.md) dropped backend health-check spans at the instrumentation layer and disabled the `net` auto-instrumentation outright — both require application-level access. When you can't touch the application (third-party library, another team's service, a vendor agent), the [filter processor](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.147.0/processor/filterprocessor) uses [OTTL](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.147.0/pkg/ottl) expressions to drop spans at the collector instead.
+[Exercise 04](04-customizing-instrumentations.md) dropped backend health-check spans at the instrumentation layer and disabled the `net` auto-instrumentation outright — both require application-level access. When you can't touch the application (third-party library, another team's service, a vendor agent), the [filter processor](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.149.0/processor/filterprocessor) uses [OTTL](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.149.0/pkg/ottl) expressions to drop spans at the collector instead.
 
 > [!WARNING]
 > **Only drop leaf spans.** The collector cannot rewrite `parent_span_id` references. Dropping a parent orphans its children, breaking the trace tree. Static file requests and health-check pings are safe targets; for anything else prefer disabling the module or an instrumentation filter in the application.
@@ -76,7 +76,7 @@ The processor runs before `batch`, so filtered spans never reach the exporter.
 
 [Exercise 04](04-customizing-instrumentations.md) sets `enduser.id` (username) on spans so traces are searchable by user. Usernames are personal data — a liability if traces are shipped to a third-party backend or retained long-term.
 
-The [transform processor](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.147.0/processor/transformprocessor) rewrites attributes using OTTL expressions without touching application code.
+The [transform processor](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.149.0/processor/transformprocessor) rewrites attributes using OTTL expressions without touching application code.
 
 > [!NOTE]
 > `enduser.id` is personal data. The hashing technique below applies to any sensitive string attribute you need to retain but anonymize — useful when you cannot change the application code.
@@ -114,14 +114,11 @@ Place it after the filter — no point hashing attributes on spans that are abou
 
 ---
 
-## Part 3 — Sample smartly in the collector
+## Part 3 — Tail-based sampling in the collector
 
-[Exercise 04](04-customizing-instrumentations.md#part-3--sample-traces-at-the-source) cut trace volume in half with a head-based sampler — the SDK flips a coin at trace start and keeps 50%. Fast and cheap, but blind: it makes the decision before the trace has errors or latency, so half of every incident is already on the floor by the time you go looking.
+[Exercise 04](04-customizing-instrumentations.md#part-3--sample-traces-at-the-source) halved trace volume with a head-based sampler — the SDK decides at trace start based only on the trace ID. It's cheap but uninformed: the decision is made before any error or latency signal exists, so a fixed fraction of incidents is dropped unconditionally.
 
-The [tail sampling processor](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.147.0/processor/tailsamplingprocessor) defers the decision. The collector buffers every span of a trace, waits until the trace is complete, and then applies a set of policies — e.g. "keep if any span had an error" or "keep if the trace took longer than 1 s." Boring 200-OKs get dropped, interesting traces survive.
-
-> [!NOTE]
-> Tail sampling needs the collector to see every trace, so the SDK has to stop dropping at head. In exchange, you keep 100% of errors and 100% of slow traces — the signal you actually care about.
+The [tail sampling processor](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.149.0/processor/tailsamplingprocessor) defers the decision until the trace is observable. The collector buffers every span of a trace in memory and, after a `decision_wait` window elapses, evaluates policies (e.g. status code, latency) against the trace and exports the ones that match.
 
 ### Step 5 — Turn off head-based sampling
 
@@ -185,7 +182,7 @@ Order matters: `filter` runs first (cheap drop — no point buffering spans we'l
 docker compose up --build
 ```
 
-Set `CHAOS_MODE=true` in your `.env` before starting — chaos mode produces the error and slow traces that tail sampling is meant to keep. Log in as `alice` and exercise the app (restaurant list, detail pages, search). Wait ~15 s after your last click so the `decision_wait` window closes and buffered traces can be emitted.
+Make sure `CHAOS_MODE=true` is set in your `.env` (it's the default) — chaos mode produces the error and slow traces that tail sampling is meant to keep. Log in as `alice` and exercise the app (restaurant list, detail pages, search). Wait ~15 s after your last click so the `decision_wait` window closes and buffered traces can be emitted.
 
 **Part 1** — static-file and frontend `/health` spans should be gone:
 
@@ -231,7 +228,7 @@ Check out the [metrics drilldown](http://localhost:3000/a/grafana-metricsdrilldo
 
 - [Transforming telemetry in the Collector](https://opentelemetry.io/docs/collector/transforming-telemetry/) — guide to the transform processor and OTTL
 - [OTTL Playground](https://ottl.run/) — experiment with OTTL expressions interactively
-- [Tail Sampling Processor](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.147.0/processor/tailsamplingprocessor) — every policy type and tuning knob
+- [Tail Sampling Processor](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/v0.149.0/processor/tailsamplingprocessor) — every policy type and tuning knob
 - [OTel sampling](https://opentelemetry.io/docs/concepts/sampling/) — head vs tail, tradeoffs, and when to use each
 - [OpenTelemetry Collector Contrib](https://github.com/open-telemetry/opentelemetry-collector-contrib) — source of the `filter`, `transform`, and `tail_sampling` processors
 
