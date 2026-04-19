@@ -23,7 +23,10 @@ groups:
                   or vector(0)
                 )
                 /
-                sum(rate(http_server_request_duration_seconds_count{service_name="frontend", http_route!~"/health|/favicon.ico"}[1m]))
+                (
+                  sum(rate(http_server_request_duration_seconds_count{service_name="frontend", http_route!~"/health|/favicon.ico"}[1m]))
+                  or vector(1)
+                )
               instant: true
               interval: ""
               intervalMs: 1000
@@ -58,9 +61,10 @@ groups:
               type: threshold
         dashboardUid: apm-dashboard
         panelId: 40
-        noDataState: NoData
+        noDataState: OK
         execErrState: Error
-        for: 0s
+        for: 10s
+        keep_firing_for: 5m
         annotations:
           description: >-
             Frontend 5xx error rate is above 1% for 1 minute.

@@ -86,6 +86,9 @@ services:
     volumes:
       - ./load-test.js:/scripts/load-test.js:ro
     command: ["run", "--quiet", "/scripts/load-test.js"]
+    depends_on:
+      frontend:
+        condition: service_healthy
 
 volumes:
   db_data:

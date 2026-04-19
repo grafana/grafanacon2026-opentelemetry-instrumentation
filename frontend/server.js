@@ -32,6 +32,17 @@ function chaosRandomDelay() {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+// CHAOS: returns 500 for ~30% of requests so the 5xx error-rate alert
+// reliably fires during demos.
+function chaosError(res) {
+  const v = process.env.CHAOS_MODE;
+  if ((v === "true" || v === "1") && Math.random() < 0.3) {
+    res.status(500).send("chaos: simulated failure");
+    return true;
+  }
+  return false;
+}
+
 const app = express();
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8080";
 
@@ -183,6 +194,7 @@ app.get("/", async (req, res) => {
 
 // Search
 app.get("/search", async (req, res) => {
+  if (chaosError(res)) return;
   chaosSlowNode();
   await chaosRandomDelay();
   const { q, neighborhood, min_rating, open_at, options } = req.query;
