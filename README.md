@@ -2,6 +2,8 @@
 
 A demo application for learning OpenTelemetry instrumentation. It helps users discover tapas restaurants in Barcelona.
 
+Workshop slides: [Getting started with OpenTelemetry instrumentation — GrafanaCON 2026](<Getting started with OpenTelemetry instrumentation - GrafanaCON 2026.pdf>)
+
 ## Table of Contents
 
 - [Before the workshop](#before-the-workshop)
