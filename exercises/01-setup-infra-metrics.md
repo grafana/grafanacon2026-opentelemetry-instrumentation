@@ -2,7 +2,10 @@
 
 [Exercise 02 →](02-setup-obi.md)
 
-In this exercise you configure the OpenTelemetry Collector to scrape infrastructure metrics from the host and Docker and add a Grafana dashboard to visualize them.
+In this exercise you configure the OpenTelemetry Collector to scrape infrastructure metrics from the host and Docker and visualize them in a pre-provisioned Grafana dashboard.
+
+> [!NOTE]
+> Using Podman? Read [PODMAN.md](../PODMAN.md#macos--windows-let-containers-read-the-docker-socket) before running this exercise.
 
 ## Contents
 
@@ -13,8 +16,6 @@ In this exercise you configure the OpenTelemetry Collector to scrape infrastruct
   - [Step 2 — Add receivers](#step-2--add-receivers)
   - [Step 3 — Add the resourcedetection processor](#step-3--add-the-resourcedetection-processor)
   - [Step 4 — Wire everything into the pipelines](#step-4--wire-everything-into-the-pipelines)
-- [Part 3 — Add the Grafana dashboard](#part-3--add-the-grafana-dashboard)
-  - [Step 5 — Add the Grafana dashboard](#step-5--add-the-grafana-dashboard)
 - [Verify](#verify)
 - [Catch up](#catch-up)
 
@@ -24,7 +25,7 @@ In this exercise you configure the OpenTelemetry Collector to scrape infrastruct
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
 | [otel-collector/config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/01-setup-infra-metrics/otel-collector/config.yaml)                   | Add `hostmetrics` and `docker_stats` receivers; add `resourcedetection` processor; wire them into pipelines |
 | [docker-compose.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/01-setup-infra-metrics/docker-compose.yaml)                                 | Mount the Docker socket and host filesystem into the collector container                                    |
-| [grafana/dashboards/hostmetrics.json](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/01-setup-infra-metrics/grafana/dashboards/hostmetrics.json) | New dashboard — CPU, memory, disk, network for the host and per-container CPU/memory                        |
+| [grafana/dashboards/hostmetrics.json](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/01-setup-infra-metrics/grafana/dashboards/hostmetrics.json) | Pre-provisioned dashboard — CPU, memory, disk, network for the host and per-container CPU/memory            |
 
 ---
 
@@ -152,19 +153,13 @@ Add the processor to [otel-collector/config.yaml](https://github.com/grafana/gra
 
 ---
 
-## Part 3 — Add the Grafana dashboard
-
-### Step 5 — Add the Grafana dashboard
-
-A pre-built dashboard definition lives in [grafana/dashboards/hostmetrics.json](../grafana/dashboards/hostmetrics.json). It is automatically provisioned on startup (no manual import needed).
-
----
-
 ## Verify
 
 ```bash
 docker compose up --build
 ```
+
+A pre-built dashboard definition lives in [grafana/dashboards/hostmetrics.json](../grafana/dashboards/hostmetrics.json). It is automatically provisioned on startup (no manual import needed).
 
 Open <http://localhost:3000/d/hostmetrics>. You should see CPU, memory, disk, and network panels populated within a few seconds.
 

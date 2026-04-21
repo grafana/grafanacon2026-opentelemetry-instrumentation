@@ -56,7 +56,14 @@
     "Errorf",
     "strconv",
     "Atoi",
-    "Getenv"
+    "Getenv",
+    "PERFMON",
+    "rootful",
+    "rootless",
+    "setenforce",
+    "memlock",
+    "rlimit",
+    "npipe"
   ],
   "ignoreWords": []
 }

@@ -7,24 +7,27 @@ In this exercise you add [OBI](https://github.com/open-telemetry/opentelemetry-e
 > [!NOTE]
 > OBI uses Linux eBPF and runs as a privileged Docker container. On macOS and Windows, Docker Desktop provides a Linux VM where OBI runs — all other containers share the same Linux kernel, so OBI can observe them with no extra setup. OBI cannot run directly on macOS or Windows (outside Docker).
 
+<!-- -->
+
+> [!NOTE]
+> Using Podman? OBI needs rootful mode — see [PODMAN.md](../PODMAN.md#rootful-mode-for-exercise-02) before running this exercise.
+
 ## Contents
 
 - [What you will change](#what-you-will-change)
 - [Part 1 — Deploy OBI](#part-1--deploy-obi)
   - [Step 1 — Add the OBI service to docker-compose](#step-1--add-the-obi-service-to-docker-compose)
   - [Step 2 — Create the OBI config](#step-2--create-the-obi-config)
-- [Part 2 — Add the Grafana dashboard](#part-2--add-the-grafana-dashboard)
-  - [Step 3 — Add the Grafana dashboard](#step-3--add-the-grafana-dashboard)
 - [Verify](#verify)
 - [Catch up](#catch-up)
 
 ## What you will change
 
-| File                                                                                                                                                                 | Changes                                                                          |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| [docker-compose.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/02-setup-obi/docker-compose.yaml)                                 | Add the `obi` service                                                            |
-| [obi/obi-config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/02-setup-obi/obi/obi-config.yaml)                                 | New OBI config — targets the app containers and exports metrics to the collector |
-| [grafana/dashboards/red-metrics.json](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/02-setup-obi/grafana/dashboards/red-metrics.json) | New RED metrics dashboard — request rate, error rate, and latency per service    |
+| File                                                                                                                                                                 | Changes                                                                                   |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| [docker-compose.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/02-setup-obi/docker-compose.yaml)                                 | Add the `obi` service                                                                     |
+| [obi/obi-config.yaml](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/02-setup-obi/obi/obi-config.yaml)                                 | New OBI config — targets the app containers and exports metrics to the collector          |
+| [grafana/dashboards/red-metrics.json](https://github.com/grafana/grafanacon2026-opentelemetry-instrumentation/blob/02-setup-obi/grafana/dashboards/red-metrics.json) | Pre-provisioned RED metrics dashboard — request rate, error rate, and latency per service |
 
 ---
 
@@ -86,19 +89,13 @@ discovery:
 
 ---
 
-## Part 2 — Add the Grafana dashboard
-
-### Step 3 — Add the Grafana dashboard
-
-A pre-built RED metrics dashboard lives in [grafana/dashboards/red-metrics.json](../grafana/dashboards/red-metrics.json). It is automatically provisioned on startup.
-
----
-
 ## Verify
 
 ```bash
 docker compose up --build
 ```
+
+A pre-built RED metrics dashboard lives in [grafana/dashboards/red-metrics.json](../grafana/dashboards/red-metrics.json). It is automatically provisioned on startup.
 
 > [!NOTE]
 > Metrics may take up to a minute to appear after the services start. If the panels are empty, wait a moment and refresh.

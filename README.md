@@ -43,7 +43,7 @@ The first build downloads images and compiles both services — it can take seve
 ## Prerequisites
 
 - Git
-- Docker and Docker Compose
+- Docker and Docker Compose — or Podman with the `docker compose` CLI, see [PODMAN.md](PODMAN.md) for setup
 
 ## Getting Started
 

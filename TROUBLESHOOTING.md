@@ -44,3 +44,13 @@ docker compose logs otel-collector
 ```
 
 Validate OTTL expressions by looking for `error_mode: ignore` — without it, a bad expression drops the entire telemetry item. You can also use the [OTTL playground](https://ottl.run/) to validate expressions.
+
+## Podman
+
+Setup is covered in [PODMAN.md](PODMAN.md). Common Podman-specific failures:
+
+**Collector exits with `permission denied ... /var/run/docker.sock`** ([Exercise 01](exercises/01-setup-infra-metrics.md) and later) — Podman Machine's SELinux blocks container access to the Docker-compat socket. Fix per [PODMAN.md § Let containers read the Docker socket](PODMAN.md#macos--windows-let-containers-read-the-docker-socket).
+
+**OBI exits with `memlock rlimit: operation not permitted`** ([Exercise 02](exercises/02-setup-obi.md)) — rootless Podman can't grant the eBPF capabilities OBI needs. Switch Podman Machine to rootful per [PODMAN.md § Rootful mode](PODMAN.md#rootful-mode-for-exercise-02).
+
+**`/var/run/docker.sock: no such file or directory`** — the Docker-compat symlink is missing inside the Podman Machine VM (rare — Podman usually creates it). `podman machine ssh` into the VM and create it: `sudo ln -s /run/podman/podman.sock /var/run/docker.sock` (rootful) or `sudo ln -s /run/user/$UID/podman/podman.sock /var/run/docker.sock` (rootless).
