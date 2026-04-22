@@ -2,7 +2,7 @@ services:
 
   db:
     container_name: db
-    image: postgres:18-alpine@sha256:4da1a4828be12604092fa55311276f08f9224a74a62dcb4708bd7439e2a03911
+    image: postgres:18-alpine@sha256:54451ecb8ab38c24c3ec123f2fd501303a3a1856a5c66e98cecf2460d5e1e9d7
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
