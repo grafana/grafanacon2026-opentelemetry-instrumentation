@@ -80,7 +80,7 @@ services:
 
   load-test:
     container_name: load-test
-    image: grafana/k6
+    image: grafana/k6@sha256:632ddbc81a4a9fdc9e597da91ab1d8fcf1916dd988b43b4a4559d2f8d8e73d47
     environment:
       BASE_URL: ${BASE_URL:-http://frontend:8080}
     volumes:
