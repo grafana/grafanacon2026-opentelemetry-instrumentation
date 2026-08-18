@@ -24,3 +24,4 @@ After making any changes, run formatting and spell check:
 make format
 make spell
 ```
+- Security issues should be reported via [Grafana's security issue reporting page](https://grafana.com/legal/report-a-security-issue/) and not directly in this repository.
