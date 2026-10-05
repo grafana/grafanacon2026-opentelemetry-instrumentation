@@ -57,7 +57,7 @@ services:
 
   lgtm:
     container_name: lgtm
-    image: grafana/otel-lgtm:0.25.0@sha256:cc97e494d697f0b45997f91ad3b350fd85a5fe51afc41783ba5fcaebe19560cf
+    image: grafana/otel-lgtm:0.35.0@sha256:2de1094c593c671cbfca878a28ffcd7e46ff5e32f2ce966c0cf33003f6cf4266
     ports:
       - "3000:3000"
       - "3200:3200"
